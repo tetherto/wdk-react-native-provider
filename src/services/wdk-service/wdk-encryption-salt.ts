@@ -20,8 +20,6 @@ function generateWdkSalt(email: any): Buffer {
     bf.fill(7, encoded.length);
   }
 
-  console.info('[generateWdkSalt] --->', bf);
-
   return bf as Buffer;
 }
 

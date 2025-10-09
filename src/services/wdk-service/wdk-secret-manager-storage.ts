@@ -45,7 +45,7 @@ export class WdkSecretManagerStorage {
       console.info(`For key ${itemService} in secure storage data do not exist.`);
       return false;
     } catch (error) {
-      console.info(error);
+      console.error(error);
       return false;
     }
   }

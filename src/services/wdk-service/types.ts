@@ -27,7 +27,6 @@ export const AssetAddressMap = {
   },
   [AssetTicker.XAUT]: {
     [NetworkType.ETHEREUM]: 'ethereum',
-    // [NetworkType.TON]: 'ton',
   },
 };
 
@@ -43,9 +42,6 @@ export const AssetBalanceMap = {
   },
   [AssetTicker.XAUT]: {
     [NetworkType.ETHEREUM]: 'ethereum',
-    [NetworkType.POLYGON]: 'polygon',
-    [NetworkType.ARBITRUM]: 'arbitrum',
-    [NetworkType.TON]: 'ton',
   },
 };
 
