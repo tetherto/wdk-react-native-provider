@@ -6,6 +6,7 @@ import { initializeWalletWithSeed } from '../services/wallet-setup';
 import { WDKService } from '../services/wdk-service';
 import type {
   AccountData,
+  ChainsConfig,
   NetworkType,
   Transaction,
   Wallet,
@@ -119,7 +120,7 @@ function walletReducer(
 // Provider configuration
 export interface WalletProviderConfig {
   indexerApiKey: string;
-  chains: any; // Chain configuration object
+  chains: ChainsConfig;
 }
 
 // Create context

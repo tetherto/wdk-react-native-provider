@@ -94,3 +94,63 @@ export interface InitializeAccountParams {
   walletId: string;
   accountIndex: number;
 }
+
+// Chain Configuration Types
+
+export interface PaymasterToken {
+  address: string;
+}
+
+export interface EVMChainConfig {
+  chainId: number;
+  blockchain: string;
+  provider: string;
+  bundlerUrl: string;
+  paymasterUrl: string;
+  paymasterAddress: string;
+  entrypointAddress: string;
+  transferMaxFee: number;
+  swapMaxFee: number;
+  bridgeMaxFee: number;
+  paymasterToken: PaymasterToken;
+  safeModulesVersion?: string;
+}
+
+export interface TONChainConfig {
+  tonApiClient: {
+    url: string;
+  };
+  tonClient: {
+    url: string;
+  };
+  paymasterToken: PaymasterToken;
+  transferMaxFee: number;
+}
+
+export interface BitcoinChainConfig {
+  host: string;
+  port: number;
+}
+
+export interface TronChainConfig {
+  chainId: number;
+  provider: string;
+  gasFreeProvider: string;
+  apiKey: string;
+  apiSecret: string;
+  serviceProvider: string;
+  verifyingContract: string;
+  transferMaxFee: number;
+  swapMaxFee: number;
+  bridgeMaxFee: number;
+  paymasterToken: PaymasterToken;
+}
+
+export interface ChainsConfig {
+  ethereum?: EVMChainConfig;
+  arbitrum?: EVMChainConfig;
+  polygon?: EVMChainConfig;
+  ton?: TONChainConfig;
+  bitcoin?: BitcoinChainConfig;
+  tron?: TronChainConfig;
+}

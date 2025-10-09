@@ -11,6 +11,7 @@ import type {
   AccountData,
   Address,
   Amount,
+  ChainsConfig,
   InitializeAccountParams,
   Transaction,
   Wallet,
@@ -76,7 +77,7 @@ interface WalletCache {
 
 interface WDKServiceConfig {
   indexerApiKey: string;
-  chains: any;
+  chains: ChainsConfig;
 }
 
 class WDKService {
