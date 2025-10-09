@@ -1,24 +1,17 @@
 import { HRPC as WdkManager } from '@tetherto/pear-wrk-wdk';
 // @ts-expect-error - bundle file doesn't have type definitions
 import wdkWorkletBundle from '@tetherto/pear-wrk-wdk/bundle/wdk-worklet.mobile.bundle.js';
-import { BitfinexPricingClient } from '@tetherto/wdk-pricing-bitfinex-http';
-import { PricingProvider } from '@tetherto/wdk-pricing-provider';
 import b4a from 'b4a';
 import * as bip39 from 'bip39';
 import Decimal from 'decimal.js';
-import config from '../../config/chains.json';
 // @ts-expect-error - bundle file doesn't have type definitions
 import workletBundle from '../../wdk-secret-manager-worklet.bundle.js';
 import { BareWorkletApi, InstanceEnum } from './bare-api';
 import type {
   AccountData,
   Address,
-  FiatAmount,
+  Amount,
   InitializeAccountParams,
-  Jar,
-  News,
-  SecurityAlert,
-  Suggestion,
   Transaction,
   Wallet,
 } from './types';
@@ -26,7 +19,6 @@ import {
   AssetAddressMap,
   AssetBalanceMap,
   AssetTicker,
-  FiatCurrency,
   NetworkType,
 } from './types';
 import { wdkEncryptionSalt } from './wdk-encryption-salt';
@@ -56,8 +48,6 @@ const toNetwork = (n: NetworkType): string => {
   switch (n) {
     case NetworkType.SEGWIT:
       return 'bitcoin';
-    case NetworkType.SPARK:
-      return 'spark';
     case NetworkType.ETHEREUM:
       return 'ethereum';
     case NetworkType.TON:
@@ -82,14 +72,11 @@ interface WalletCache {
     [index: number]: AccountData;
   };
   transactions?: Transaction[];
-  suggestions?: Suggestion[];
-  news?: News[];
-  securityAlerts?: SecurityAlert[];
-  jars?: Jar[];
 }
 
 interface WDKServiceConfig {
   indexerApiKey: string;
+  chains: any;
 }
 
 class WDKService {
@@ -98,18 +85,7 @@ class WDKService {
   private isInitialized = false;
   private wdkManager: WdkManager | null = null;
   private secretManager: any | null = null;
-  private provider: PricingProvider | null = null;
   private config: WDKServiceConfig | undefined;
-  private fiatExchangeRateCache: Record<
-    FiatCurrency,
-    Record<AssetTicker, number>
-  > = {
-    [FiatCurrency.USD]: {
-      [AssetTicker.BTC]: 100000,
-      [AssetTicker.USDT]: 1,
-      [AssetTicker.XAUT]: 0,
-    },
-  };
 
   private constructor() {}
 
@@ -132,12 +108,22 @@ class WDKService {
     return this.config.indexerApiKey;
   }
 
+  private getChainsConfig(): any {
+    if (!this.config) {
+      throw new Error('WDK Service config not set');
+    }
+
+    if (!this.config.chains) {
+      throw new Error('Chains config not set');
+    }
+
+    return this.config.chains;
+  }
+
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
 
     try {
-      console.log('Initializing WDK services...');
-
       // Start both worklets
       BareWorkletApi.startWorklet(
         InstanceEnum.wdkSecretManager,
@@ -165,25 +151,6 @@ class WDKService {
       if (!this.wdkManager) {
         throw new Error('Failed to initialize WDK Manager HRPC instance');
       }
-
-      const client = new BitfinexPricingClient();
-
-      this.provider = new PricingProvider({
-        client,
-        priceCacheDurationMs: 1000 * 60 * 60, // 1 hour
-      });
-
-      this.fiatExchangeRateCache[FiatCurrency.USD] = {
-        [AssetTicker.BTC]: await this.provider.getLastPrice(
-          AssetTicker.BTC,
-          FiatCurrency.USD
-        ),
-        [AssetTicker.USDT]: 1,
-        [AssetTicker.XAUT]: await this.provider.getLastPrice(
-          AssetTicker.XAUT,
-          FiatCurrency.USD
-        ),
-      };
 
       this.isInitialized = true;
     } catch (error) {
@@ -307,7 +274,6 @@ class WDKService {
     }
 
     if (!encryptedSeed || !encryptedEntropy || !salt) {
-      console.info('Seed does not exists!');
       return null;
     }
 
@@ -343,7 +309,7 @@ class WDKService {
       throw new Error('WDK Manager not initialized');
     }
 
-    if (network === NetworkType.SEGWIT || network === NetworkType.SPARK) {
+    if (network === NetworkType.SEGWIT) {
       return await this.wdkManager.getAddress({
         network: toNetwork(network),
         accountIndex: index,
@@ -396,8 +362,6 @@ class WDKService {
       networkAddresses[NetworkType.ETHEREUM];
     networkAddresses[NetworkType.ARBITRUM] =
       networkAddresses[NetworkType.ETHEREUM];
-    networkAddresses[NetworkType.SPARK] =
-      'sp1pgssxqpskk24k3wqw2zz9ax2dg42w3803lus6u87ck4h82wg2za6gkdmxshzyx';
 
     return networkAddresses;
   }
@@ -412,8 +376,6 @@ class WDKService {
       {
         balance: number;
         asset: AssetTicker;
-        fiatValue: number;
-        fiatCurrency: FiatCurrency;
       }
     >;
     transactions: Record<string, Transaction[]>;
@@ -438,8 +400,6 @@ class WDKService {
         {
           balance: number;
           asset: AssetTicker;
-          fiatValue: number;
-          fiatCurrency: FiatCurrency;
         }
       >,
       transactions: transactions as Record<string, Transaction[]>,
@@ -486,15 +446,6 @@ class WDKService {
         NetworkType.TON,
       ].includes(network)
     ) {
-      console.log(
-        'running quoteSendByNetwork',
-        network,
-        index,
-        amount,
-        recipientAddress,
-        asset
-      );
-
       if (!recipientAddress) {
         if (network === NetworkType.TON) {
           recipientAddress = 'UQD3pGcepS4RffO1iktLhpucHEXWJhG-U_MjtmLgzB0z7rBw';
@@ -623,10 +574,8 @@ class WDKService {
     await wdkManager.workletStart({
       enableDebugLogs: 0,
       seedPhrase: seed,
-      config: JSON.stringify(config),
+      config: JSON.stringify(this.getChainsConfig()),
     });
-
-    console.info(`Wallet ${wallet.id} created`, wallet);
 
     // Update our local reference
     this.wdkManager = BareWorkletApi.hrpcInstances.wdkManager;
@@ -640,10 +589,6 @@ class WDKService {
       data: wallet,
       account: {},
       transactions: [],
-      suggestions: [],
-      news: [],
-      securityAlerts: [],
-      jars: [],
     });
 
     return wallet;
@@ -673,15 +618,13 @@ class WDKService {
       })
     );
 
-    const balances: FiatAmount[] = Object.entries(data.balances).map(
-      ([key, { balance, asset, fiatValue, fiatCurrency }]) => {
+    const balances: Amount[] = Object.entries(data.balances).map(
+      ([key, { balance, asset }]) => {
         const [networkType] = key.split('_') as [NetworkType];
         return {
           networkType,
           denomination: asset,
           value: balance.toString(),
-          fiatValue: fiatValue.toString(),
-          currency: fiatCurrency,
         };
       }
     );
@@ -731,22 +674,6 @@ class WDKService {
                 return;
               }
 
-              console.log('\n\n\n\n\n');
-              console.log(
-                'tring to get transactions',
-                JSON.stringify(
-                  {
-                    url: `https://wdk-api-staging.tether.su/api/v1/${networkType}/${asset}/${address}/token-transfers?limit=100`,
-                    headers: {
-                      'X-API-KEY': this.getIndexerApiKey(),
-                    },
-                  },
-                  null,
-                  2
-                )
-              );
-              console.log('\n\n\n\n\n');
-
               const response = await fetch(
                 `https://wdk-api-staging.tether.su/api/v1/${networkType}/${asset}/${address}/token-transfers?limit=100`,
                 {
@@ -765,30 +692,10 @@ class WDKService {
 
               const data = (await response.json()) as any;
 
-              console.log('\n\n\n\n\n');
-              console.log('resolveWalletTransactions data', data);
-              console.log('\n\n\n\n\n');
-
-              // Add fiat values to transactions
-              const transactionsWithFiat = await Promise.all(
-                (data.transfers || []).map(async (tx: Transaction) => {
-                  const amount = parseFloat(tx.amount);
-                  const fiatAmount = await this.getFiatValue(
-                    amount,
-                    asset,
-                    FiatCurrency.USD
-                  );
-                  return {
-                    ...tx,
-                    fiatAmount: fiatAmount,
-                    fiatCurrency: FiatCurrency.USD,
-                  };
-                })
-              );
-
-              transactionMap[key] = transactionsWithFiat;
+              // Store transactions without fiat values (will be calculated in the app)
+              transactionMap[key] = data.transfers || [];
             } catch (error: any) {
-              console.log(
+              console.error(
                 `Error getting ${asset} transactions from ${networkType}:`,
                 error.message
               );
@@ -812,8 +719,6 @@ class WDKService {
       {
         balance: number;
         asset: AssetTicker;
-        fiatValue: number;
-        fiatCurrency: FiatCurrency;
       }
     >
   > {
@@ -823,8 +728,6 @@ class WDKService {
       {
         balance: number;
         asset: AssetTicker;
-        fiatValue: number;
-        fiatCurrency: FiatCurrency;
       }
     > = {};
 
@@ -837,8 +740,6 @@ class WDKService {
         balanceMap[key] = {
           balance: 0,
           asset,
-          fiatValue: 0,
-          fiatCurrency: FiatCurrency.USD,
         };
         balancePromises.push(
           (async () => {
@@ -867,19 +768,12 @@ class WDKService {
 
               const data = (await response.json()) as any;
 
-              // Extract USDT balance
+              // Extract balance
               const balance = parseFloat(data.tokenBalance.amount) || 0;
-              const fiatValue = await wdkService.getFiatValue(
-                balance,
-                asset,
-                FiatCurrency.USD
-              );
 
               balanceMap[key]!.balance = Number(balance);
-              balanceMap[key]!.fiatValue = fiatValue;
-              balanceMap[key]!.fiatCurrency = FiatCurrency.USD;
             } catch (error: any) {
-              console.log(
+              console.error(
                 `Error getting ${asset} balance from ${networkType}:`,
                 error.message
               );
@@ -898,29 +792,6 @@ class WDKService {
     return Array.from(this.walletManagerCache.values()).map(
       (cache) => cache.data
     );
-  }
-
-  async getFiatValue(
-    value: number,
-    asset: AssetTicker,
-    currency: FiatCurrency
-  ): Promise<number> {
-    return new Decimal(value)
-      .mul(this.fiatExchangeRateCache[currency][asset])
-      .toNumber();
-  }
-
-  async refreshWalletBalance(params: {
-    walletId: string;
-  }): Promise<{ success: boolean }> {
-    const wallet = this.walletManagerCache.get(params.walletId);
-
-    if (!wallet) {
-      throw new Error(`Wallet ${params.walletId} not found`);
-    }
-
-    // TODO: Implement proper balance refresh using existing methods
-    return { success: true };
   }
 
   hasWallet(): boolean {

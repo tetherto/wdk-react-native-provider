@@ -1,6 +1,6 @@
 {
-  "name": "react-native-wdk-context-provider",
-  "version": "0.1.0",
+  "name": "@tetherto/wdk-react-native-provider",
+  "version": "1.0.0-beta.1",
   "description": "React Native library providing wallet context and WDK service integration",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
@@ -39,7 +39,7 @@
     "clean": "del-cli lib",
     "prepare": "bob build",
     "release": "release-it --only-version",
-    "gen:bundle": "npx bare-pack --target ios-arm64 --target ios-arm64-simulator --target ios-x64-simulator --target android-arm --target android-arm64 --target android-ia32 --target android-x64 --linked --out src/wdk-secret-manager-worklet.bundle.js src/worklet/wdk-secret-manager-worklet.js"
+    "gen:secret-manager-bundle": "npx bare-pack --target ios-arm64 --target ios-arm64-simulator --target ios-x64-simulator --target android-arm --target android-arm64 --target android-ia32 --target android-x64 --linked --out src/wdk-secret-manager-worklet.bundle.js src/worklet/wdk-secret-manager-worklet.js"
   },
   "keywords": [
     "react-native",
@@ -86,16 +86,18 @@
   "peerDependencies": {
     "react": "*",
     "react-native": "*",
+    "@craftzdog/react-native-buffer": "^6.1.0",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@tetherto/pear-wrk-wdk": "github:tetherto/pear-wrk-wdk#v1.0.0-beta.1",
-    "@tetherto/wdk-pricing-provider": "github:tetherto/wdk-pricing-provider#v1.0.0-beta.1",
-    "@tetherto/wdk-pricing-bitfinex-http": "github:tetherto/wdk-pricing-bitfinex-http#v1.0.0-beta.1",
-    "@tetherto/wdk-secret-manager": "github:tetherto/wdk-secret-manager#v1.0.0-beta.1",
+    "@tetherto/wdk-secret-manager": "github:noxtton/wdk-secret-manager-internal#v0.1.0",
     "b4a": "^1.7.2",
     "bip39": "^3.1.0",
     "decimal.js": "^10.6.0",
+    "process": "^0.11.10",
     "react-native-bare-kit": "^0.8.14",
+    "react-native-crypto": "^2.2.1",
     "react-native-device-info": "^14.1.1",
+    "react-native-get-random-values": "^1.11.0",
     "react-native-keychain": "^10.0.0"
   },
   "workspaces": [

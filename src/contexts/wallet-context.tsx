@@ -119,6 +119,7 @@ function walletReducer(
 // Provider configuration
 export interface WalletProviderConfig {
   indexerApiKey: string;
+  chains: any; // Chain configuration object
 }
 
 // Create context
@@ -137,7 +138,10 @@ export function WalletProvider({
   // Set WDK config on mount
   useEffect(() => {
     if (config?.indexerApiKey) {
-      WDKService.setConfig({ indexerApiKey: config.indexerApiKey });
+      WDKService.setConfig({
+        indexerApiKey: config.indexerApiKey,
+        chains: config.chains,
+      });
     }
   }, [config]);
 
@@ -229,8 +233,6 @@ export function WalletProvider({
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       const wdkWallets = await WDKService.getWallets();
-
-      console.log('loadWallet wdkWallets', wdkWallets);
 
       if (wdkWallets.length > 0) {
         const wdkWallet = wdkWallets[0]!; // Take first wallet (non-null asserted since length > 0)
@@ -377,14 +379,12 @@ export function WalletProvider({
       );
 
       const balances = Object.entries(balanceMap).map(
-        ([key, { balance, asset, fiatValue, fiatCurrency }]) => {
+        ([key, { balance, asset }]) => {
           const [networkType] = key.split('_') as [NetworkType];
           return {
             networkType,
             denomination: asset,
             value: balance.toString(),
-            fiatValue: fiatValue.toString(),
-            currency: fiatCurrency,
           };
         }
       );
