@@ -54,7 +54,7 @@
   "bugs": {
     "url": "https://github.com/tetherto/wdk-react-native-provider/issues"
   },
-  "homepage": "https://github.com/tetherto#readme",
+  "homepage": "https://github.com/tetherto/wdk-react-native-provider",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },
