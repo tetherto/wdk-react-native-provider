@@ -87,7 +87,7 @@
     "react": "*",
     "react-native": "*",
     "@react-native-async-storage/async-storage": "^2.2.0",
-    "@tetherto/pear-wrk-wdk": "github:noxtton/wdk-bare-internal#v0.1.1",
+    "@tetherto/pear-wrk-wdk": "github:tetherto/pear-wrk-wdk#v1.0.0-beta.1",
     "@tetherto/wdk-pricing-provider": "github:tetherto/wdk-pricing-provider#v1.0.0-beta.1",
     "@tetherto/wdk-pricing-bitfinex-http": "github:tetherto/wdk-pricing-bitfinex-http#v1.0.0-beta.1",
     "@tetherto/wdk-secret-manager": "github:tetherto/wdk-secret-manager#v1.0.0-beta.1",
