@@ -80,8 +80,8 @@
   "peerDependencies": {
     "@craftzdog/react-native-buffer": "^6.1.0",
     "@react-native-async-storage/async-storage": "^2.2.0",
-    "@tetherto/pear-wrk-wdk": "^1.0.0-beta.1",
-    "@tetherto/wdk-secret-manager": "^1.0.0-beta.1",
+    "@tetherto/pear-wrk-wdk": "^v1.0.0-beta.1",
+    "@tetherto/wdk-secret-manager": "^v1.0.0-beta.1",
     "b4a": "^1.7.2",
     "bip39": "^3.1.0",
     "decimal.js": "^10.6.0",
