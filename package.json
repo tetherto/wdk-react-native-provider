@@ -38,7 +38,7 @@
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
     "clean": "del-cli lib",
     "prepare": "bob build",
-    "gen:secret-manager-bundle": "npx bare-pack --target ios-arm64 --target ios-arm64-simulator --target ios-x64-simulator --target android-arm --target android-arm64 --target android-ia32 --target android-x64 --linked --out src/wdk-secret-manager-worklet.bundle.js src/worklet/wdk-secret-manager-worklet.js"
+    "gen:secret-manager-bundle": "npx bare-pack --target ios-arm64 --target ios-arm64-simulator --target ios-x64-simulator --target android-arm --target android-arm64 --target android-ia32 --target android-x64 --linked --out src/wdk-secret-manager-worklet.bundle.js src/worklet/wdk-secret-manager-worklet.js && cp src/wdk-secret-manager-worklet.bundle.js lib/module/services/wdk-service/wdk-secret-manager-worklet.bundle.js"
   },
   "keywords": [
     "react-native",
@@ -78,8 +78,8 @@
   "peerDependencies": {
     "@craftzdog/react-native-buffer": "^6.1.0",
     "@react-native-async-storage/async-storage": "^2.2.0",
-    "@tetherto/wdk-secret-manager": "^1.0.0-beta.1",
     "@tetherto/pear-wrk-wdk": "github:hakaari/pear-wrk-wdk#cf4f46de311e0de6d58dbf465fcf4717e72dc360",
+    "@tetherto/wdk-secret-manager": "github:hakaari/wdk-secret-manager#7d594a8ef1c4a7d6689b06f590a23e9cde632bff",
     "b4a": "^1.7.2",
     "bip39": "^3.1.0",
     "decimal.js": "^10.6.0",
