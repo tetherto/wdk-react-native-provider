@@ -5,7 +5,7 @@ import b4a from 'b4a';
 import * as bip39 from 'bip39';
 import Decimal from 'decimal.js';
 // @ts-expect-error - bundle file doesn't have type definitions
-import workletBundle from '../../wdk-secret-manager-worklet.bundle.js';
+import workletBundle from './wdk-secret-manager-worklet.bundle.js';
 import { BareWorkletApi, InstanceEnum } from './bare-api';
 import type {
   AccountData,
