@@ -119,7 +119,11 @@ function walletReducer(
 
 // Provider configuration
 export interface WalletProviderConfig {
-  indexerApiKey: string;
+  indexer: {
+    apiKey: string;
+    url: string;
+    version?: string;
+  };
   chains: ChainsConfig;
 }
 
@@ -138,12 +142,7 @@ export function WalletProvider({
 
   // Set WDK config on mount
   useEffect(() => {
-    if (config?.indexerApiKey) {
-      WDKService.setConfig({
-        indexerApiKey: config.indexerApiKey,
-        chains: config.chains,
-      });
-    }
+      WDKService.setConfig({...config, indexer: {...config.indexer, version: config.indexer.version || 'v1'}});
   }, [config]);
 
   // Load wallet from storage on mount

@@ -37,7 +37,7 @@
     "typecheck": "tsc",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
     "clean": "del-cli lib",
-    "prepare": "bob build",
+    "prepare": "bob build && npm run gen:secret-manager-bundle",
     "gen:secret-manager-bundle": "npx bare-pack --target ios-arm64 --target ios-arm64-simulator --target ios-x64-simulator --target android-arm --target android-arm64 --target android-ia32 --target android-x64 --linked --out src/wdk-secret-manager-worklet.bundle.js src/worklet/wdk-secret-manager-worklet.js && cp src/wdk-secret-manager-worklet.bundle.js lib/module/services/wdk-service/wdk-secret-manager-worklet.bundle.js"
   },
   "keywords": [
