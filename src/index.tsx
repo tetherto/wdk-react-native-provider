@@ -13,7 +13,7 @@ export type { WalletProviderConfig } from './contexts/wallet-context';
 export { WDKService, wdkService } from './services/wdk-service';
 
 // Export wallet setup utilities
-export { initializeWalletWithSeed } from './services/wallet-setup';
+export { initializeWallet } from './services/wallet-setup';
 export type { WalletSetupResult } from './services/wallet-setup';
 
 // Export all types

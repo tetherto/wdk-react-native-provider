@@ -452,15 +452,14 @@ function App() {
 
 ## Advanced Usage
 
-### Using initializeWalletWithSeed
+### Using initializeWallet
 
 For manual wallet initialization:
 
 ```tsx
-import { initializeWalletWithSeed } from '@tetherto/wdk-react-native-provider';
+import { initializeWallet } from '@tetherto/wdk-react-native-provider';
 
-const result = await initializeWalletWithSeed(
-  'your twelve word mnemonic phrase here ...',
+const result = await initializeWallet(
   'My Wallet',
   'passkey'
 );

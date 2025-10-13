@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { ReactNode } from 'react';
 import { createContext, useContext, useEffect, useReducer } from 'react';
 import { getUniqueId } from 'react-native-device-info';
-import { initializeWalletWithSeed } from '../services/wallet-setup';
+import { initializeWallet } from '../services/wallet-setup';
 import { WDKService } from '../services/wdk-service';
 import type {
   AccountData,
@@ -338,15 +338,9 @@ export function WalletProvider({
     // Get device ID for seed retrieval
     const prf = await getUniqueId();
 
-    // Retrieve the seed phrase
-    const seed = await WDKService.retrieveSeed(prf);
-
-    if (!seed) {
-      throw new Error('Failed to retrieve seed phrase');
-    }
 
     // Initialize the wallet with the seed
-    const result = await initializeWalletWithSeed(seed, state.wallet.name, prf);
+    const result = await initializeWallet(state.wallet.name, prf);
 
     if (!result.success) {
       throw new Error(result.error || 'Failed to initialize wallet');
