@@ -76,7 +76,11 @@ interface WalletCache {
 }
 
 interface WDKServiceConfig {
-  indexerApiKey: string;
+  indexer: {
+    apiKey: string;
+    url: string;
+    version: string;
+  }
   chains: ChainsConfig;
 }
 
@@ -99,6 +103,23 @@ class WDKService {
 
   setConfig(config: WDKServiceConfig): void {
     this.config = { ...this.config, ...config };
+    
+  }
+
+  private getIndexerUrl(): string {
+    if (!this.config) {
+      throw new Error('WDK Service config not set');
+    }
+
+    return this.config.indexer.url;
+  }
+
+  private getIndexerVersion(): string {
+    if (!this.config) {
+      throw new Error('WDK Service config not set');
+    }
+
+    return this.config.indexer.version;
   }
 
   private getIndexerApiKey(): string {
@@ -106,7 +127,7 @@ class WDKService {
       throw new Error('WDK Service config not set');
     }
 
-    return this.config.indexerApiKey;
+    return this.config.indexer.apiKey;
   }
 
   private getChainsConfig(): any {
@@ -676,7 +697,7 @@ class WDKService {
               }
 
               const response = await fetch(
-                `https://wdk-api-staging.tether.su/api/v1/${networkType}/${asset}/${address}/token-transfers?limit=100`,
+                `${this.getIndexerUrl()}/api/${this.getIndexerVersion()}/${networkType}/${asset}/${address}/token-transfers?limit=100`,
                 {
                   method: 'GET',
                   headers: {
@@ -754,7 +775,7 @@ class WDKService {
               }
 
               const response = await fetch(
-                `https://wdk-api-staging.tether.su/api/v1/${networkType}/${asset}/${address}/token-balances`,
+                `${this.getIndexerUrl()}/api/${this.getIndexerVersion()}/${networkType}/${asset}/${address}/token-balances`,
                 {
                   method: 'GET',
                   headers: {
