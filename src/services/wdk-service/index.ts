@@ -30,7 +30,7 @@ import {
   WdkSecretManagerStorage,
 } from './wdk-secret-manager-storage';
 
-const SMART_CONTRACT_BALANCE_ADDRESSES = {
+export const SMART_CONTRACT_BALANCE_ADDRESSES = {
   [AssetTicker.USDT]: {
     ethereum: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
     polygon: '0xc2132d05d31c914a87c6611c10748aeb04b58e8f',
@@ -433,63 +433,59 @@ class WDKService {
     index: number,
     amount: number,
     recipientAddress: string,
-    asset: AssetTicker
-  ): Promise<number> {
-    if (!this.wdkManager) {
-      throw new Error('WDK Manager not initialized');
-    }
-
-    // Check if any wallet exists and the WDK Manager is started with a seed
-    const hasWallet = this.walletManagerCache.size > 0;
-    if (!hasWallet) {
-      throw new Error(
-        'No wallet found. Please create or import a wallet first before quoting transactions.'
-      );
-    }
-
-    if (network === NetworkType.SEGWIT) {
-      const quote = await this.wdkManager.quoteSendTransaction({
-        network: 'bitcoin',
-        accountIndex: index,
-        options: {
-          to: recipientAddress || 'bc1qraj47d6py592h6rufwkuf8m2xeljdqn34474l3',
-          value: new Decimal(amount)
-            .mul(this.getDenominationValue(AssetTicker.BTC))
-            .toNumber(),
-        },
-      });
-
-      return quote.fee / this.getDenominationValue(AssetTicker.BTC);
-    } else if (
-      [
-        NetworkType.ETHEREUM,
-        NetworkType.POLYGON,
-        NetworkType.ARBITRUM,
-        NetworkType.TON,
-      ].includes(network)
-    ) {
-      if (!recipientAddress) {
-        if (network === NetworkType.TON) {
-          recipientAddress = 'UQD3pGcepS4RffO1iktLhpucHEXWJhG-U_MjtmLgzB0z7rBw';
-        } else {
-          recipientAddress = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
-        }
+    asset: AssetTicker,
+  ) {
+    try {
+      if (network === NetworkType.SEGWIT) {
+        const value = new Decimal(amount).mul(this.getDenominationValue(AssetTicker.BTC)).toNumber();
+        const quote = await this.wdkManager.quoteSendTransaction({
+          network: 'bitcoin',
+          accountIndex: index,
+          options: {
+            to: recipientAddress,
+            value: value.toString(),
+          },
+        });
+  
+        return Number(quote.fee) / this.getDenominationValue(AssetTicker.BTC);
+      } else if ([NetworkType.ETHEREUM, NetworkType.POLYGON, NetworkType.ARBITRUM, NetworkType.TON].includes(network)) {
+        const sendAmount = 1000;
+  
+        const config = {
+          paymasterToken: {
+            // @ts-expect-error
+            address: SMART_CONTRACT_BALANCE_ADDRESSES[asset][network],
+          },
+        };
+        
+        const quote = await this.wdkManager.abstractedAccountQuoteTransfer({
+          network: network,
+          accountIndex: index,
+          options: {
+            recipient: recipientAddress,
+            // @ts-expect-error
+            token: SMART_CONTRACT_BALANCE_ADDRESSES[asset][network],
+            amount: sendAmount.toString(),
+          },
+          config: config,
+        });
+  
+        return Number(quote.fee) / this.getDenominationValue(AssetTicker.USDT);
+      } else {
+        throw new Error('Unsupported network');
       }
-      const quote = await this.wdkManager.abstractedAccountQuoteTransfer({
-        network: network,
-        accountIndex: index,
-        options: {
-          recipient:
-            recipientAddress || '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-          // @ts-expect-error
-          token: SMART_CONTRACT_BALANCE_ADDRESSES[asset][network],
-          amount: 1000,
-        },
-      });
+    } catch (error) {
+      const insufficientBalancePatterns = [
+        'Insufficient balance',
+        'Details: validator: callData reverts',
+        'JSON is not a valid request object',
+      ];
+  
+      if (insufficientBalancePatterns.some(pattern => (error as any)?.message?.includes(pattern))) {
+        throw new Error('Insufficient balance');
+      }
 
-      return quote.fee / this.getDenominationValue(AssetTicker.USDT);
-    } else {
-      throw new Error('Unsupported network');
+      throw error;
     }
   }
 
