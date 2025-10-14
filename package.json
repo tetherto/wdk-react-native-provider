@@ -79,7 +79,7 @@
     "@craftzdog/react-native-buffer": "^6.1.0",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@tetherto/pear-wrk-wdk": "github:tetherto/pear-wrk-wdk#6acf6587e7737ab1307b6544156e876cce203f08",
-    "@tetherto/wdk-secret-manager": "github:tetherto/wdk-secret-manager#27463b43954b05e49cecd40a06d2012d8c541140",
+    "@tetherto/wdk-secret-manager": "^1.0.0-beta.2",
     "b4a": "^1.7.2",
     "bip39": "^3.1.0",
     "decimal.js": "^10.6.0",
