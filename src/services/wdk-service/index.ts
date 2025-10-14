@@ -1,11 +1,11 @@
 import { HRPC as WdkManager } from '@tetherto/pear-wrk-wdk';
 // @ts-expect-error - bundle file doesn't have type definitions
-import wdkWorkletBundle from '@tetherto/pear-wrk-wdk/bundle/wdk-worklet.mobile.bundle.js';
+import wdkWorkletBundle from './wdk-worklet.mobile.bundle.js';
 import b4a from 'b4a';
 import * as bip39 from 'bip39';
 import Decimal from 'decimal.js';
 // @ts-expect-error - bundle file doesn't have type definitions
-import workletBundle from './wdk-secret-manager-worklet.bundle.js';
+import secretManagerWorkletBundle from './wdk-secret-manager-worklet.bundle.js';
 import { BareWorkletApi, InstanceEnum } from './bare-api';
 import type {
   AccountData,
@@ -150,7 +150,7 @@ class WDKService {
       BareWorkletApi.startWorklet(
         InstanceEnum.wdkSecretManager,
         '/secret.manager.worklet.bundle',
-        workletBundle
+        secretManagerWorkletBundle
       );
       BareWorkletApi.startWorklet(
         InstanceEnum.wdkManager,

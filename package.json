@@ -37,8 +37,9 @@
     "typecheck": "tsc",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
     "clean": "del-cli lib",
-    "prepare": "bob build && npm run gen:secret-manager-bundle",
-    "gen:secret-manager-bundle": "npx bare-pack --target ios-arm64 --target ios-arm64-simulator --target ios-x64-simulator --target android-arm --target android-arm64 --target android-ia32 --target android-x64 --linked --out src/wdk-secret-manager-worklet.bundle.js src/worklet/wdk-secret-manager-worklet.js && cp src/wdk-secret-manager-worklet.bundle.js lib/module/services/wdk-service/wdk-secret-manager-worklet.bundle.js"
+    "prepare": "bob build && npm run gen:secret-manager-bundle && npm run gen:worker-bundle",
+    "gen:worker-bundle": "npx bare-pack --target ios-arm64 --target ios-arm64-simulator --target ios-x64-simulator --target android-arm --target android-arm64 --target android-ia32 --target android-x64 --linked --imports node_modules/@tetherto/pear-wrk-wdk/pack.imports.json --out lib/module/services/wdk-service/wdk-worklet.mobile.bundle.js node_modules/@tetherto/pear-wrk-wdk/src/wdk-worklet.js",
+    "gen:secret-manager-bundle": "npx bare-pack --target ios-arm64 --target ios-arm64-simulator --target ios-x64-simulator --target android-arm --target android-arm64 --target android-ia32 --target android-x64 --linked --out lib/module/services/wdk-service/wdk-secret-manager-worklet.bundle.js src/worklet/wdk-secret-manager-worklet.js"
   },
   "keywords": [
     "react-native",
