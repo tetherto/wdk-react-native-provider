@@ -142,7 +142,10 @@ export function WalletProvider({
 
   // Set WDK config on mount
   useEffect(() => {
-      WDKService.setConfig({...config, indexer: {...config.indexer, version: config.indexer.version || 'v1'}});
+    WDKService.setConfig({
+      ...config,
+      indexer: { ...config.indexer, version: config.indexer.version || 'v1' },
+    });
   }, [config]);
 
   // Load wallet from storage on mount
@@ -337,7 +340,6 @@ export function WalletProvider({
 
     // Get device ID for seed retrieval
     const prf = await getUniqueId();
-
 
     // Initialize the wallet with the seed
     const result = await initializeWallet(state.wallet.name, prf);

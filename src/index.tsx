@@ -10,7 +10,11 @@ export {
 export type { WalletProviderConfig } from './contexts/wallet-context';
 
 // Export WDK service
-export { WDKService, wdkService, SMART_CONTRACT_BALANCE_ADDRESSES } from './services/wdk-service';
+export {
+  WDKService,
+  wdkService,
+  SMART_CONTRACT_BALANCE_ADDRESSES,
+} from './services/wdk-service';
 
 // Export wallet setup utilities
 export { initializeWallet } from './services/wallet-setup';
