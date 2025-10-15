@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "schema": [
+    {
+      "id": 0,
+      "name": "@tetherto/wdk-secret-manager/command-workletStart",
+      "request": {
+        "name": "@tetherto/wdk-secret-manager/command-workletStart-request",
+        "stream": false
+      },
+      "response": {
+        "name": "@tetherto/wdk-secret-manager/command-workletStart-response",
+        "stream": false
+      },
+      "version": 1
+    },
+    {
+      "id": 1,
+      "name": "@tetherto/wdk-secret-manager/command-workletStop",
+      "request": {
+        "name": "@tetherto/wdk-secret-manager/command-workletStop-request",
+        "stream": false
+      },
+      "response": {
+        "name": "@tetherto/wdk-secret-manager/command-workletStop-response",
+        "stream": false
+      },
+      "version": 1
+    },
+    {
+      "id": 2,
+      "name": "@tetherto/wdk-secret-manager/command-generateAndEncrypt",
+      "request": {
+        "name": "@tetherto/wdk-secret-manager/command-generateAndEncrypt-request",
+        "stream": false
+      },
+      "response": {
+        "name": "@tetherto/wdk-secret-manager/command-generateAndEncrypt-response",
+        "stream": false
+      },
+      "version": 1
+    },
+    {
+      "id": 3,
+      "name": "@tetherto/wdk-secret-manager/command-decrypt",
+      "request": {
+        "name": "@tetherto/wdk-secret-manager/command-decrypt-request",
+        "stream": false
+      },
+      "response": {
+        "name": "@tetherto/wdk-secret-manager/command-decrypt-response",
+        "stream": false
+      },
+      "version": 1
+    },
+    {
+      "id": 4,
+      "name": "@tetherto/wdk-secret-manager/command-log",
+      "request": {
+        "name": "@tetherto/wdk-secret-manager/command-log-request",
+        "send": true
+      },
+      "version": 1
+    }
+  ]
+}
