@@ -80,7 +80,7 @@ interface WDKServiceConfig {
     apiKey: string;
     url: string;
     version: string;
-  }
+  };
   chains: ChainsConfig;
 }
 
@@ -103,7 +103,6 @@ class WDKService {
 
   setConfig(config: WDKServiceConfig): void {
     this.config = { ...this.config, ...config };
-    
   }
 
   private getIndexerUrl(): string {
@@ -433,11 +432,13 @@ class WDKService {
     index: number,
     amount: number,
     recipientAddress: string,
-    asset: AssetTicker,
+    asset: AssetTicker
   ) {
     try {
       if (network === NetworkType.SEGWIT) {
-        const value = new Decimal(amount).mul(this.getDenominationValue(AssetTicker.BTC)).toNumber();
+        const value = new Decimal(amount)
+          .mul(this.getDenominationValue(AssetTicker.BTC))
+          .toNumber();
         const quote = await this.wdkManager.quoteSendTransaction({
           network: 'bitcoin',
           accountIndex: index,
@@ -446,18 +447,25 @@ class WDKService {
             value: value.toString(),
           },
         });
-  
+
         return Number(quote.fee) / this.getDenominationValue(AssetTicker.BTC);
-      } else if ([NetworkType.ETHEREUM, NetworkType.POLYGON, NetworkType.ARBITRUM, NetworkType.TON].includes(network)) {
+      } else if (
+        [
+          NetworkType.ETHEREUM,
+          NetworkType.POLYGON,
+          NetworkType.ARBITRUM,
+          NetworkType.TON,
+        ].includes(network)
+      ) {
         const sendAmount = 1000;
-  
+
         const config = {
           paymasterToken: {
             // @ts-expect-error
             address: SMART_CONTRACT_BALANCE_ADDRESSES[asset][network],
           },
         };
-        
+
         const quote = await this.wdkManager.abstractedAccountQuoteTransfer({
           network: network,
           accountIndex: index,
@@ -469,7 +477,7 @@ class WDKService {
           },
           config: config,
         });
-  
+
         return Number(quote.fee) / this.getDenominationValue(AssetTicker.USDT);
       } else {
         throw new Error('Unsupported network');
@@ -480,8 +488,12 @@ class WDKService {
         'Details: validator: callData reverts',
         'JSON is not a valid request object',
       ];
-  
-      if (insufficientBalancePatterns.some(pattern => (error as any)?.message?.includes(pattern))) {
+
+      if (
+        insufficientBalancePatterns.some((pattern) =>
+          (error as any)?.message?.includes(pattern)
+        )
+      ) {
         throw new Error('Insufficient balance');
       }
 
