@@ -563,7 +563,7 @@ class WDKService {
         network: network,
         accountIndex: index,
         options: sendParams,
-        config: config,
+        config,
       });
 
       return response;
