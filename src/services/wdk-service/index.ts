@@ -552,10 +552,18 @@ class WDKService {
           .toString(),
       };
 
+      const config = {
+        paymasterToken: {
+          // @ts-expect-error
+          address: SMART_CONTRACT_BALANCE_ADDRESSES[asset][network],
+        },
+      };
+
       const response = await this.wdkManager.abstractedAccountTransfer({
         network: network,
         accountIndex: index,
         options: sendParams,
+        config,
       });
 
       return response;
@@ -564,7 +572,7 @@ class WDKService {
     }
   }
 
-  private getDenominationValue(asset: AssetTicker): number {
+  getDenominationValue(asset: AssetTicker): number {
     switch (asset) {
       case AssetTicker.BTC:
         return 100000000;

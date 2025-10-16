@@ -1,6 +1,6 @@
 {
   "name": "@tetherto/wdk-react-native-provider",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0-beta.2",
   "description": "React Native library providing wallet context and WDK service integration",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
