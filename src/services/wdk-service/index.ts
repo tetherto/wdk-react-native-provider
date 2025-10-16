@@ -525,7 +525,7 @@ class WDKService {
         to: recipientAddress,
         value: new Decimal(amount)
           .mul(this.getDenominationValue(AssetTicker.BTC))
-          .toNumber(),
+          .toString(),
       };
 
       const response = await this.wdkManager.sendTransaction({
@@ -549,7 +549,7 @@ class WDKService {
         token: SMART_CONTRACT_BALANCE_ADDRESSES[asset][network],
         amount: new Decimal(amount)
           .mul(this.getDenominationValue(AssetTicker.USDT))
-          .toNumber(),
+          .toString(),
       };
 
       const response = await this.wdkManager.abstractedAccountTransfer({
