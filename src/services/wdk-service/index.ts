@@ -29,7 +29,7 @@ import {
   WDK_STORAGE_SEED,
   WdkSecretManagerStorage,
 } from './wdk-secret-manager-storage';
-import getBalancesFromBalanceMap from '../../utils/get-balances-from-balance-map.ts';
+import getBalancesFromBalanceMap from '../../utils/get-balances-from-balance-map';
 
 export const SMART_CONTRACT_BALANCE_ADDRESSES = {
   [AssetTicker.USDT]: {
