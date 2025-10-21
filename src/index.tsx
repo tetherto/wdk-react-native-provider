@@ -21,7 +21,6 @@ export type {
   AccountData,
   Address,
   Amount,
-  InitializeAccountParams,
   Transaction,
   Wallet,
 } from './services/wdk-service/types';

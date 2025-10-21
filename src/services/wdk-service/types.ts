@@ -93,13 +93,6 @@ export interface Address {
   value: string;
 }
 
-export interface InitializeAccountParams {
-  walletId: string;
-  accountIndex: number;
-}
-
-// Chain Configuration Types
-
 export interface PaymasterToken {
   address: string;
 }

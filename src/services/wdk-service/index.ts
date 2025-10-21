@@ -7,15 +7,7 @@ import Decimal from 'decimal.js';
 // @ts-expect-error - bundle file doesn't have type definitions
 import secretManagerWorkletBundle from './wdk-secret-manager-worklet.bundle.js';
 import { BareWorkletApi, InstanceEnum } from './bare-api';
-import type {
-  AccountData,
-  Address,
-  Amount,
-  ChainsConfig,
-  InitializeAccountParams,
-  Transaction,
-  Wallet,
-} from './types';
+import type { AccountData, ChainsConfig, Transaction, Wallet } from './types';
 import {
   AssetAddressMap,
   AssetBalanceMap,
@@ -29,7 +21,6 @@ import {
   WDK_STORAGE_SEED,
   WdkSecretManagerStorage,
 } from './wdk-secret-manager-storage';
-import getBalancesFromBalanceMap from '../../utils/get-balances-from-balance-map';
 
 export const SMART_CONTRACT_BALANCE_ADDRESSES = {
   [AssetTicker.USDT]: {
@@ -388,46 +379,6 @@ class WDKService {
     return networkAddresses;
   }
 
-  private async resolveWalletAddressesAndBalances(
-    enabledAssets: AssetTicker[],
-    index: number = 0
-  ): Promise<{
-    addresses: Partial<Record<NetworkType, string>>;
-    balances: Record<
-      string,
-      {
-        balance: number;
-        asset: AssetTicker;
-      }
-    >;
-    transactions: Record<string, Transaction[]>;
-  }> {
-    if (!this.wdkManager) {
-      throw new Error('WDK Manager not initialized');
-    }
-
-    const addresses = await this.resolveWalletAddresses(enabledAssets, index);
-
-    const promises = [];
-
-    promises.push(this.resolveWalletTransactions(enabledAssets, addresses));
-    promises.push(this.resolveWalletBalances(enabledAssets, addresses));
-
-    const [transactions, balances] = await Promise.all(promises);
-
-    return {
-      addresses,
-      balances: balances as Record<
-        string,
-        {
-          balance: number;
-          asset: AssetTicker;
-        }
-      >,
-      transactions: transactions as Record<string, Transaction[]>,
-    };
-  }
-
   async quoteSendByNetwork(
     network: NetworkType,
     index: number,
@@ -526,6 +477,7 @@ class WDKService {
         to: recipientAddress,
         value: new Decimal(amount)
           .mul(this.getDenominationValue(AssetTicker.BTC))
+          .round()
           .toString(),
       };
 
@@ -550,6 +502,7 @@ class WDKService {
         token: SMART_CONTRACT_BALANCE_ADDRESSES[asset][network],
         amount: new Decimal(amount)
           .mul(this.getDenominationValue(AssetTicker.USDT))
+          .round()
           .toString(),
       };
 
@@ -633,52 +586,6 @@ class WDKService {
     return wallet;
   }
 
-  async initializeAccountWithBalances(
-    params: InitializeAccountParams
-  ): Promise<AccountData> {
-    const wallet = this.walletManagerCache.get(params.walletId);
-
-    if (!wallet) {
-      throw new Error(`Wallet ${params.walletId} not found`);
-    }
-
-    if (!this.wdkManager) {
-      throw new Error('WDK Manager not initialized');
-    }
-
-    const data = await this.resolveWalletAddressesAndBalances(
-      wallet.data.enabledAssets,
-      params.accountIndex
-    );
-    const addresses: Address[] = Object.entries(data.addresses).map(
-      ([networkType, address]) => ({
-        networkType: networkType as NetworkType,
-        value: address || '',
-      })
-    );
-
-    const balances: Amount[] = getBalancesFromBalanceMap(data.balances);
-
-    const transactions: Transaction[] = Object.entries(
-      data.transactions
-    ).reduce((allTransactions, [_, txArray]) => {
-      return allTransactions.concat(txArray);
-    }, [] as Transaction[]);
-
-    const accountData: AccountData = {
-      addresses,
-      balances,
-      transactions,
-      addressMap: data.addresses,
-      balanceMap: data.balances,
-      transactionMap: data.transactions,
-    };
-
-    wallet.account[params.accountIndex] = accountData;
-
-    return accountData;
-  }
-
   async resolveWalletTransactions(
     enabledAssets: AssetTicker[],
     networkAddresses: Partial<Record<NetworkType, string>>
@@ -746,11 +653,6 @@ class WDKService {
         transactionMap[key] = item.transfers || [];
       }
     });
-
-    console.log(
-      '0956718293 resolveWalletTransactions transactionMap',
-      JSON.stringify(transactionMap, null, 2)
-    );
 
     return transactionMap;
   }
@@ -829,16 +731,6 @@ class WDKService {
     );
 
     return balanceMap;
-  }
-
-  async getWallets(): Promise<Wallet[]> {
-    return Array.from(this.walletManagerCache.values()).map(
-      (cache) => cache.data
-    );
-  }
-
-  hasWallet(): boolean {
-    return this.walletManagerCache.size > 0;
   }
 }
 

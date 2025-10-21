@@ -75,11 +75,6 @@ export function WalletProvider({
     const addressMap = state.addresses;
 
     if (enabledAssets && addressMap) {
-      console.log('useEffect blabla', {
-        enabledAssets,
-        addressMap,
-      });
-
       fetchBalances();
       fetchTransactions();
     }
@@ -261,11 +256,6 @@ export function WalletProvider({
       addressMap
     );
 
-    console.log(
-      '\n\n\n\n09875678912 getUpdatedBalances balanceMap',
-      balanceMap
-    );
-
     // save fresh data to AsyncStorage
     await AsyncStorage.setItem(
       STORAGE_KEY_BALANCES,
@@ -283,11 +273,6 @@ export function WalletProvider({
     const transactionMap = await WDKService.resolveWalletTransactions(
       enabledAssets,
       addressMap
-    );
-
-    console.log(
-      '\n\n\n\n09875678912 getUpdatedTransactions transactionMap',
-      transactionMap
     );
 
     // save fresh data to AsyncStorage
