@@ -47,9 +47,9 @@ npm install \
 Wrap your app with the `WalletProvider` and provide the required configuration:
 
 ```tsx
-import { WalletProvider, type ChainsConfig } from '@tetherto/wdk-react-native-provider';
+import { WalletProvider } from '@tetherto/wdk-react-native-provider';
 
-const chains: ChainsConfig = {
+const chains = {
   ethereum: {
     chainId: 1,
     blockchain: 'ethereum',
@@ -76,8 +76,12 @@ function App() {
   return (
     <WalletProvider
       config={{
-        indexerApiKey: 'your-api-key-here',
+        indexer: {
+          apiKey: 'your-api-key-here',
+          url: 'https://your-indexer-url.com',
+        },
         chains: chains,
+        enableCaching: true, // Optional: enable caching for balances and transactions
       }}
     >
       <YourApp />
@@ -96,13 +100,15 @@ import { useWallet } from '@tetherto/wdk-react-native-provider';
 function WalletScreen() {
   const {
     wallet,
+    balances,
+    transactions,
     isLoading,
     isInitialized,
     isUnlocked,
     createWallet,
-    importWallet,
     unlockWallet,
     refreshWalletBalance,
+    refreshTransactions,
   } = useWallet();
 
   // Create a new wallet
@@ -110,9 +116,6 @@ function WalletScreen() {
     try {
       const newWallet = await createWallet({
         name: 'My Wallet',
-        type: 'primary',
-        network: 'ethereum',
-        icon: '💎',
       });
       console.log('Wallet created:', newWallet);
     } catch (error) {
@@ -123,11 +126,10 @@ function WalletScreen() {
   // Import existing wallet
   const handleImportWallet = async () => {
     try {
-      const imported = await importWallet(
-        'your twelve word mnemonic phrase here ...',
-        'Imported Wallet',
-        '🔑'
-      );
+      const imported = await createWallet({
+        name: 'Imported Wallet',
+        mnemonic: 'your twelve word mnemonic phrase here ...',
+      });
       console.log('Wallet imported:', imported);
     } catch (error) {
       console.error('Failed to import wallet:', error);
@@ -164,8 +166,8 @@ function WalletScreen() {
   return (
     <View>
       <Text>Wallet Name: {wallet.name}</Text>
-      <Text>Balance: {wallet.accountData?.balances[0]?.value}</Text>
       <Button title="Refresh Balance" onPress={refreshWalletBalance} />
+      <Button title="Refresh Transactions" onPress={refreshTransactions} />
     </View>
   );
 }
@@ -179,8 +181,12 @@ The main provider component that manages wallet state.
 
 **Props:**
 
-- `config.indexerApiKey` (string, required): API key for the indexer service
+- `config.indexer` (object, required): Indexer service configuration
+  - `config.indexer.apiKey` (string, required): API key for the indexer service
+  - `config.indexer.url` (string, required): URL of the indexer service
+  - `config.indexer.version` (string, optional): API version (defaults to 'v1')
 - `config.chains` (ChainsConfig, required): Chain configuration object containing network-specific settings
+- `config.enableCaching` (boolean, optional): Enable caching for balances and transactions to improve performance
 
 See [Chain Configuration](#chain-configuration) for detailed configuration options.
 
@@ -193,23 +199,29 @@ Hook to access wallet context and functionality.
 ```typescript
 {
   // State
-  wallet: WalletWithAccountData | null;
+  wallet?: Wallet | null;
+  addresses?: AddressMap;
+  balances: {
+    list: Amount[];
+    map: BalanceMap;
+    isLoading: boolean;
+  };
+  transactions: {
+    list: Transaction[];
+    map: TransactionMap;
+    isLoading: boolean;
+  };
   isLoading: boolean;
   error: string | null;
   isInitialized: boolean;
   isUnlocked: boolean;
 
   // Actions
-  setWallet: (wallet: WalletWithAccountData | null) => void;
-  updateWallet: (updates: Partial<WalletWithAccountData>) => void;
-  clearWallet: () => void;
-
-  // Async Operations
-  initializeWDK: () => Promise<void>;
-  loadWallet: () => Promise<void>;
-  createWallet: (params: CreateWalletParams) => Promise<WalletWithAccountData>;
-  importWallet: (mnemonic: string, name: string, icon?: string) => Promise<WalletWithAccountData>;
+  createWallet: (params: { name: string; mnemonic?: string }) => Promise<Wallet | null>;
+  clearWallet: () => Promise<void>;
+  clearError: () => void;
   refreshWalletBalance: () => Promise<void>;
+  refreshTransactions: () => Promise<void>;
   unlockWallet: () => Promise<boolean | undefined>;
 }
 ```
@@ -259,12 +271,12 @@ const result = await WDKService.sendByNetwork(
 
 The library supports multiple blockchain networks, each with its own configuration structure.
 
-### ChainsConfig Type
+### Chains Configuration Structure
+
+The `chains` configuration object supports the following blockchain networks:
 
 ```typescript
-import type { ChainsConfig } from '@tetherto/wdk-react-native-provider';
-
-const chains: ChainsConfig = {
+const chains = {
   ethereum?: EVMChainConfig;
   arbitrum?: EVMChainConfig;
   polygon?: EVMChainConfig;
@@ -279,9 +291,7 @@ const chains: ChainsConfig = {
 For Ethereum, Polygon, and Arbitrum:
 
 ```typescript
-import type { EVMChainConfig } from '@tetherto/wdk-react-native-provider';
-
-const ethereumConfig: EVMChainConfig = {
+const ethereumConfig = {
   chainId: 1,
   blockchain: 'ethereum',
   provider: 'https://mainnet.gateway.tenderly.co/YOUR_KEY',
@@ -302,9 +312,7 @@ const ethereumConfig: EVMChainConfig = {
 ### TON Chain Configuration
 
 ```typescript
-import type { TONChainConfig } from '@tetherto/wdk-react-native-provider';
-
-const tonConfig: TONChainConfig = {
+const tonConfig = {
   tonApiClient: {
     url: 'https://tonapi.io',
   },
@@ -321,9 +329,7 @@ const tonConfig: TONChainConfig = {
 ### Bitcoin Chain Configuration
 
 ```typescript
-import type { BitcoinChainConfig } from '@tetherto/wdk-react-native-provider';
-
-const bitcoinConfig: BitcoinChainConfig = {
+const bitcoinConfig = {
   host: 'api.ordimint.com',
   port: 50001,
 };
@@ -332,9 +338,7 @@ const bitcoinConfig: BitcoinChainConfig = {
 ### Tron Chain Configuration
 
 ```typescript
-import type { TronChainConfig } from '@tetherto/wdk-react-native-provider';
-
-const tronConfig: TronChainConfig = {
+const tronConfig = {
   chainId: 3448148188,
   provider: 'https://trongrid.io',
   gasFreeProvider: 'https://gasfree.io',
@@ -354,9 +358,9 @@ const tronConfig: TronChainConfig = {
 ### Complete Configuration Example
 
 ```typescript
-import { WalletProvider, type ChainsConfig } from '@tetherto/wdk-react-native-provider';
+import { WalletProvider } from '@tetherto/wdk-react-native-provider';
 
-const chains: ChainsConfig = {
+const chains = {
   ethereum: {
     chainId: 1,
     blockchain: 'ethereum',
@@ -440,8 +444,12 @@ function App() {
   return (
     <WalletProvider
       config={{
-        indexerApiKey: 'your-indexer-api-key',
+        indexer: {
+          apiKey: 'your-indexer-api-key',
+          url: 'https://your-indexer-url.com',
+        },
         chains,
+        enableCaching: true, // Optional: enable caching for better performance
       }}
     >
       <YourApp />
@@ -452,45 +460,46 @@ function App() {
 
 ## Advanced Usage
 
-### Using initializeWallet
-
-For manual wallet initialization:
+### Accessing Balances and Transactions
 
 ```tsx
-import { initializeWallet } from '@tetherto/wdk-react-native-provider';
+const { wallet, addresses, balances, transactions } = useWallet();
 
-const result = await initializeWallet(
-  'My Wallet',
-  'passkey'
-);
-
-if (result.success) {
-  console.log('Wallet initialized:', result.wallet);
-} else {
-  console.error('Failed:', result.error);
-}
-```
-
-### Accessing Account Data
-
-```tsx
-const { wallet } = useWallet();
-
-if (wallet?.accountData) {
+if (wallet) {
   // Addresses
-  wallet.accountData.addresses.forEach(addr => {
-    console.log(`${addr.networkType}: ${addr.value}`);
-  });
+  if (addresses) {
+    Object.entries(addresses).forEach(([ticker, addressList]) => {
+      console.log(`${ticker}: ${addressList[0]?.value}`);
+    });
+  }
 
-  // Balances
-  wallet.accountData.balances.forEach(balance => {
+  // Balances - available as both list and map
+  balances.list.forEach(balance => {
     console.log(`${balance.denomination}: ${balance.value}`);
   });
 
-  // Transactions
-  wallet.accountData.transactions.forEach(tx => {
+  // Or access by ticker from the map
+  const usdtBalance = balances.map.USDT?.[0];
+  console.log('USDT Balance:', usdtBalance?.value);
+
+  // Check loading state
+  if (balances.isLoading) {
+    console.log('Loading balances...');
+  }
+
+  // Transactions - available as both list and map
+  transactions.list.forEach(tx => {
     console.log('Transaction:', tx);
   });
+
+  // Or access by ticker from the map
+  const usdtTransactions = transactions.map.USDT;
+  console.log('USDT Transactions:', usdtTransactions);
+
+  // Check loading state
+  if (transactions.isLoading) {
+    console.log('Loading transactions...');
+  }
 }
 ```
 
@@ -529,22 +538,18 @@ import type {
   // Provider configuration
   WalletProviderConfig,
 
-  // Chain configuration types
-  ChainsConfig,
-  EVMChainConfig,
-  TONChainConfig,
-  BitcoinChainConfig,
-  TronChainConfig,
-  PaymasterToken,
-
   // Wallet types
-  AccountData,
-  Address,
   Amount,
   Transaction,
   Wallet,
+
+  // Enums (also available as values)
+  AssetTicker,
+  NetworkType,
 } from '@tetherto/wdk-react-native-provider';
 ```
+
+**Note:** Chain configuration types (`ChainsConfig`, `EVMChainConfig`, `TONChainConfig`, etc.) are defined in the underlying `@tetherto/pear-wrk-wdk` package. TypeScript will infer these types when you use them in the `WalletProviderConfig`, so explicit imports are typically not needed.
 
 ## Security Considerations
 
@@ -585,11 +590,18 @@ npm test
 
 ### "WDK Manager not initialized"
 
-Make sure to call `initializeWDK()` or create/import a wallet before performing operations:
+The WDK service is initialized automatically when the `WalletProvider` mounts. If you see this error, ensure:
+
+1. Your component is wrapped with `WalletProvider`
+2. The provider's config is properly set
+3. You're checking `isInitialized` before performing wallet operations:
 
 ```tsx
-const { initializeWDK, createWallet } = useWallet();
-await initializeWDK();
+const { isInitialized, createWallet } = useWallet();
+
+if (isInitialized) {
+  await createWallet({ name: 'My Wallet' });
+}
 ```
 
 ### "No wallet found"
@@ -599,7 +611,7 @@ Ensure a wallet has been created or imported before attempting transactions:
 ```tsx
 const { wallet, createWallet } = useWallet();
 if (!wallet) {
-  await createWallet({ name: 'My Wallet', type: 'primary', network: 'ethereum' });
+  await createWallet({ name: 'My Wallet' });
 }
 ```
 
