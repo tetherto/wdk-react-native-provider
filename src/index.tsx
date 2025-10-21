@@ -17,13 +17,7 @@ export {
 } from './services/wdk-service';
 
 // Export all types
-export type {
-  AccountData,
-  Address,
-  Amount,
-  Transaction,
-  Wallet,
-} from './services/wdk-service/types';
+export type { Amount, Transaction, Wallet } from './services/wdk-service/types';
 
 // Export enums (can be used as both types and values)
 export {

@@ -1,10 +1,8 @@
 import type {
   AddressMap,
   Amount,
-  AssetTicker,
   BalanceMap,
   ChainsConfig,
-  NetworkType,
   Transaction,
   TransactionMap,
   Wallet,
@@ -27,15 +25,6 @@ export interface WalletContextState {
   error: string | null;
   isInitialized: boolean;
   isUnlocked: boolean;
-}
-
-export interface WalletMetadata {
-  id: string;
-  name: string;
-  icon: string;
-  addressMap?: Partial<Record<NetworkType, string>>;
-  balanceMap?: Record<string, { balance: number; asset: AssetTicker }>;
-  transactionMap?: Record<string, Transaction[]>;
 }
 
 export interface WalletContextType extends WalletContextState {

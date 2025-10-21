@@ -7,7 +7,7 @@ import Decimal from 'decimal.js';
 // @ts-expect-error - bundle file doesn't have type definitions
 import secretManagerWorkletBundle from './wdk-secret-manager-worklet.bundle.js';
 import { BareWorkletApi, InstanceEnum } from './bare-api';
-import type { AccountData, ChainsConfig, Transaction, Wallet } from './types';
+import type { ChainsConfig, Transaction, Wallet } from './types';
 import {
   AssetAddressMap,
   AssetBalanceMap,
@@ -61,10 +61,6 @@ const toNetwork = (n: NetworkType): string => {
 interface WalletCache {
   wdk: WdkManager;
   data: Wallet;
-  account: {
-    [index: number]: AccountData;
-  };
-  transactions?: Transaction[];
 }
 
 interface WDKServiceConfig {
@@ -579,8 +575,6 @@ class WDKService {
     this.walletManagerCache.set(wallet.id, {
       wdk: this.wdkManager,
       data: wallet,
-      account: {},
-      transactions: [],
     });
 
     return wallet;

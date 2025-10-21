@@ -7,14 +7,13 @@ import type {
 import getBalancesFromBalanceMap from '../utils/get-balances-from-balance-map';
 import getTransactionsFromTransactionMap from '../utils/get-transactions-from-transaction-map';
 import type { WalletContextState } from './types';
-import { WALLET_CONTEXT_INITIAL_STATE } from './wallet-context';
+import { WALLET_CONTEXT_INITIAL_STATE } from './constants';
 
 type WalletAction =
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'SET_WALLET'; payload: Wallet }
   | { type: 'SET_ADDRESSES'; payload: AddressMap }
-  | { type: 'UPDATE_WALLET'; payload: Partial<Wallet> }
   | { type: 'SET_INITIALIZED'; payload: boolean }
   | { type: 'SET_UNLOCKED'; payload: boolean }
   | { type: 'SET_BALANCES'; payload: BalanceMap }
@@ -47,12 +46,6 @@ function reducer(
         addresses: action.payload,
       };
 
-    case 'UPDATE_WALLET':
-      return {
-        ...state,
-        wallet: state.wallet ? { ...state.wallet, ...action.payload } : null,
-      };
-
     case 'SET_INITIALIZED':
       return { ...state, isInitialized: action.payload };
 
@@ -65,7 +58,7 @@ function reducer(
       return {
         ...state,
         balances: {
-          isLoading: state.balances.isLoading,
+          ...state.balances,
           list: balances,
           map: action.payload,
         },
@@ -77,7 +70,7 @@ function reducer(
       return {
         ...state,
         transactions: {
-          isLoading: state.balances.isLoading,
+          ...state.transactions,
           list: transactions,
           map: action.payload,
         },

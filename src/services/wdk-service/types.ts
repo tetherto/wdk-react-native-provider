@@ -64,15 +64,6 @@ export type BalanceMap = Record<
 >;
 export type TransactionMap = Partial<Record<NetworkType, Transaction[]>>;
 
-export interface AccountData {
-  addresses: Address[];
-  balances: Amount[];
-  addressMap: AddressMap;
-  balanceMap: BalanceMap;
-  transactions: Transaction[];
-  transactionMap: Record<string, Transaction[]>;
-}
-
 export interface Transaction {
   blockchain: string;
   blockNumber: number;
@@ -85,12 +76,6 @@ export interface Transaction {
   logIndex: number;
   from: string;
   to: string;
-}
-
-export interface Address {
-  asset?: AssetTicker;
-  networkType: NetworkType;
-  value: string;
 }
 
 export interface PaymasterToken {

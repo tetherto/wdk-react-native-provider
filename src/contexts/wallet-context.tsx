@@ -15,29 +15,12 @@ import type {
 } from './types';
 import walletReducer from './reducer';
 import { getUniqueId } from 'react-native-device-info';
+import { WALLET_CONTEXT_INITIAL_STATE } from './constants';
 
 const STORAGE_KEY_WALLET = 'wdk_wallet_data';
 const STORAGE_KEY_ADDRESSES = 'wdk_wallet_addresses';
 const STORAGE_KEY_BALANCES = 'wdk_wallet_balances';
 const STORAGE_KEY_TRANSACTIONS = 'wdk_wallet_transactions';
-
-export const WALLET_CONTEXT_INITIAL_STATE: WalletContextState = {
-  wallet: null,
-  balances: {
-    list: [],
-    map: {},
-    isLoading: false,
-  },
-  transactions: {
-    list: [],
-    map: {},
-    isLoading: false,
-  },
-  isUnlocked: false,
-  isInitialized: false,
-  isLoading: false,
-  error: null,
-};
 
 // Create context
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
