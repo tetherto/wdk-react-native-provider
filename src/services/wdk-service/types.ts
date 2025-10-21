@@ -57,11 +57,18 @@ export interface Wallet {
   enabledAssets: AssetTicker[];
 }
 
+export type AddressMap = Partial<Record<NetworkType, string>>;
+export type BalanceMap = Record<
+  string,
+  { balance: number; asset: AssetTicker }
+>;
+export type TransactionMap = Partial<Record<NetworkType, Transaction[]>>;
+
 export interface AccountData {
   addresses: Address[];
   balances: Amount[];
-  addressMap: Partial<Record<NetworkType, string>>;
-  balanceMap: Partial<Record<NetworkType, number>>;
+  addressMap: AddressMap;
+  balanceMap: BalanceMap;
   transactions: Transaction[];
   transactionMap: Record<string, Transaction[]>;
 }

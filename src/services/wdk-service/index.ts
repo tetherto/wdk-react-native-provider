@@ -29,6 +29,7 @@ import {
   WDK_STORAGE_SEED,
   WdkSecretManagerStorage,
 } from './wdk-secret-manager-storage';
+import getBalancesFromBalanceMap from '../../utils/get-balances-from-balance-map.ts';
 
 export const SMART_CONTRACT_BALANCE_ADDRESSES = {
   [AssetTicker.USDT]: {
@@ -656,16 +657,7 @@ class WDKService {
       })
     );
 
-    const balances: Amount[] = Object.entries(data.balances).map(
-      ([key, { balance, asset }]) => {
-        const [networkType] = key.split('_') as [NetworkType];
-        return {
-          networkType,
-          denomination: asset,
-          value: balance.toString(),
-        };
-      }
-    );
+    const balances: Amount[] = getBalancesFromBalanceMap(data.balances);
 
     const transactions: Transaction[] = Object.entries(
       data.transactions
@@ -691,60 +683,75 @@ class WDKService {
     enabledAssets: AssetTicker[],
     networkAddresses: Partial<Record<NetworkType, string>>
   ): Promise<Record<string, Transaction[]>> {
-    const transactionPromises = [];
-    const transactionMap: Record<string, any[]> = {};
+    const headers = new Headers();
+    headers.append('accept', 'application/json');
+    headers.append('x-api-key', this.getIndexerApiKey());
+    headers.append('Content-Type', 'application/json');
 
-    for (const asset of enabledAssets) {
+    const payload: {
+      blockchain: string;
+      token: AssetTicker;
+      address: string;
+      limit: number;
+      fromTs?: number;
+      toTs?: number;
+    }[] = [];
+
+    const transactionMap: Record<string, Transaction[]> = {};
+    const payloadKeys: string[] = []; // Track the keys in order to match with response array
+
+    enabledAssets.forEach((asset) => {
       const networks = AssetBalanceMap[asset];
-      if (!networks) continue;
+      if (!networks) return;
 
-      for (const [networkType] of Object.entries(networks)) {
+      Object.keys(networks).forEach((networkType) => {
         const key = `${networkType}_${asset}`;
         transactionMap[key] = [];
-        transactionPromises.push(
-          (async () => {
-            try {
-              const address = networkAddresses[networkType as NetworkType];
-              if (!address) {
-                console.error(
-                  `Address not found for network ${networkType} asset ${asset}`
-                );
-                return;
-              }
 
-              const response = await fetch(
-                `${this.getIndexerUrl()}/api/${this.getIndexerVersion()}/${networkType}/${asset}/${address}/token-transfers?limit=100`,
-                {
-                  method: 'GET',
-                  headers: {
-                    'X-API-KEY': this.getIndexerApiKey(),
-                  },
-                }
-              );
+        const address = networkAddresses[networkType as NetworkType];
 
-              if (!response.ok) {
-                throw new Error(
-                  `Failed to fetch transactions: ${response.status}`
-                );
-              }
+        if (address) {
+          payload.push({
+            blockchain: networkType,
+            token: asset,
+            address,
+            limit: 100,
+          });
+          payloadKeys.push(key); // Track which key this payload corresponds to
+        }
+      });
+    });
 
-              const data = (await response.json()) as any;
+    const requestOptions = {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(payload),
+    };
 
-              // Store transactions without fiat values (will be calculated in the app)
-              transactionMap[key] = data.transfers || [];
-            } catch (error: any) {
-              console.error(
-                `Error getting ${asset} transactions from ${networkType}:`,
-                error.message
-              );
-              transactionMap[key] = [];
-            }
-          })()
-        );
-      }
+    const response = await fetch(
+      `${this.getIndexerUrl()}/api/${this.getIndexerVersion()}/batch/token-transfers`,
+      requestOptions
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch transactions: ${response.status}`);
     }
 
-    await Promise.all(transactionPromises);
+    const data = await response.json();
+
+    // Process the batch response array - each element corresponds to a payload item by index
+    (data as Array<{ transfers: Transaction[] }>).forEach((item, index) => {
+      const key = payloadKeys[index];
+      if (key) {
+        transactionMap[key] = item.transfers || [];
+      }
+    });
+
+    console.log(
+      '0956718293 resolveWalletTransactions transactionMap',
+      JSON.stringify(transactionMap, null, 2)
+    );
+
     return transactionMap;
   }
 
@@ -760,69 +767,67 @@ class WDKService {
       }
     >
   > {
-    const balancePromises = [];
-    const balanceMap: Record<
-      string,
-      {
-        balance: number;
-        asset: AssetTicker;
-      }
-    > = {};
+    const headers = new Headers();
+    headers.append('accept', 'application/json');
+    headers.append('x-api-key', this.getIndexerApiKey());
+    headers.append('Content-Type', 'application/json');
 
-    for (const asset of enabledAssets) {
+    const payload: {
+      blockchain: string;
+      token: AssetTicker;
+      address: string;
+    }[] = [];
+
+    enabledAssets.forEach((asset) => {
       const networks = AssetBalanceMap[asset];
-      if (!networks) continue;
+      if (!networks) return;
 
-      for (const [networkType] of Object.entries(networks)) {
-        const key = `${networkType}_${asset}`;
-        balanceMap[key] = {
-          balance: 0,
-          asset,
-        };
-        balancePromises.push(
-          (async () => {
-            try {
-              const address = networkAddresses[networkType as NetworkType];
-              if (!address) {
-                console.error(
-                  `Address not found for network ${networkType} asset ${asset}`
-                );
-                return;
-              }
+      Object.keys(networks).forEach((networkType) => {
+        const address = networkAddresses[networkType as NetworkType];
+        if (address) {
+          payload.push({
+            blockchain: networkType,
+            token: asset,
+            address,
+          });
+        }
+      });
+    });
 
-              const response = await fetch(
-                `${this.getIndexerUrl()}/api/${this.getIndexerVersion()}/${networkType}/${asset}/${address}/token-balances`,
-                {
-                  method: 'GET',
-                  headers: {
-                    'X-API-KEY': this.getIndexerApiKey(),
-                  },
-                }
-              );
+    const requestOptions = {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(payload),
+    };
 
-              if (!response.ok) {
-                throw new Error(`Failed to fetch balance: ${response.status}`);
-              }
+    const response = await fetch(
+      `${this.getIndexerUrl()}/api/${this.getIndexerVersion()}/batch/token-balances`,
+      requestOptions
+    );
 
-              const data = (await response.json()) as any;
-
-              // Extract balance
-              const balance = parseFloat(data.tokenBalance.amount) || 0;
-
-              balanceMap[key]!.balance = Number(balance);
-            } catch (error: any) {
-              console.error(
-                `Error getting ${asset} balance from ${networkType}:`,
-                error.message
-              );
-              balanceMap[key]!.balance = 0;
-            }
-          })()
-        );
-      }
+    if (!response.ok) {
+      throw new Error(`Failed to fetch balances: ${response.status}`);
     }
 
-    await Promise.all(balancePromises);
+    const data = await response.json();
+
+    const balanceMap = Object.entries(
+      data as Record<
+        string,
+        { tokenBalance: { amount: number; blockchain: string; token: string } }
+      >
+    ).reduce(
+      (allBalances, [_, value]) => {
+        const obj = (value as any).tokenBalance;
+        allBalances[`${obj.blockchain}_${obj.token}`] = {
+          balance: parseFloat(obj.amount),
+          asset: obj.token as AssetTicker,
+        };
+        return allBalances;
+      },
+      {} as Record<string, { balance: number; asset: AssetTicker }>
+    );
+
     return balanceMap;
   }
 

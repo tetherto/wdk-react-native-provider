@@ -1,131 +1,43 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { ReactNode } from 'react';
 import { createContext, useContext, useEffect, useReducer } from 'react';
-import { getUniqueId } from 'react-native-device-info';
-import { initializeWallet } from '../services/wallet-setup';
 import { WDKService } from '../services/wdk-service';
 import type {
-  AccountData,
-  ChainsConfig,
-  NetworkType,
-  Transaction,
-  Wallet,
+  AddressMap,
+  AssetTicker,
+  BalanceMap,
+  TransactionMap,
 } from '../services/wdk-service/types';
+import type {
+  WalletContextState,
+  WalletContextType,
+  WalletProviderConfig,
+} from './types';
+import walletReducer from './reducer';
+import { getUniqueId } from 'react-native-device-info';
 
-// Types
-interface WalletMetadata {
-  id: string;
-  name: string;
-  icon: string;
-}
+const STORAGE_KEY_WALLET = 'wdk_wallet_data';
+const STORAGE_KEY_ADDRESSES = 'wdk_wallet_addresses';
+const STORAGE_KEY_BALANCES = 'wdk_wallet_balances';
+const STORAGE_KEY_TRANSACTIONS = 'wdk_wallet_transactions';
 
-interface WalletWithAccountData extends Wallet {
-  accountData?: AccountData;
-  balance?: string;
-  fiatBalance?: string;
-  icon?: string;
-  transactions?: Transaction[];
-}
-
-interface WalletContextState {
-  wallet: WalletWithAccountData | null;
-  isLoading: boolean;
-  error: string | null;
-  isInitialized: boolean;
-  isUnlocked: boolean;
-}
-
-type WalletAction =
-  | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_ERROR'; payload: string | null }
-  | { type: 'SET_WALLET'; payload: WalletWithAccountData | null }
-  | { type: 'UPDATE_WALLET'; payload: Partial<WalletWithAccountData> }
-  | { type: 'SET_INITIALIZED'; payload: boolean }
-  | { type: 'SET_UNLOCKED'; payload: boolean }
-  | { type: 'CLEAR_WALLET' };
-
-interface WalletContextType extends WalletContextState {
-  // Actions
-  setWallet: (wallet: WalletWithAccountData | null) => void;
-  updateWallet: (updates: Partial<WalletWithAccountData>) => void;
-  clearWallet: () => void;
-
-  // Async operations
-  initializeWDK: () => Promise<void>;
-  loadWallet: () => Promise<void>;
-  createWallet: (params: {
-    name: string;
-    type: 'primary' | 'imported';
-    network: string;
-    icon?: string;
-    mnemonic?: string;
-  }) => Promise<WalletWithAccountData>;
-  importWallet: (
-    mnemonic: string,
-    name: string
-  ) => Promise<WalletWithAccountData>;
-  refreshWalletBalance: () => Promise<void>;
-  unlockWallet: () => Promise<boolean | undefined>;
-}
-
-const STORAGE_KEY = 'wdk_wallet_metadata';
-
-// Initial state
-const initialState: WalletContextState = {
+export const WALLET_CONTEXT_INITIAL_STATE: WalletContextState = {
   wallet: null,
+  balances: {
+    list: [],
+    map: {},
+    isLoading: false,
+  },
+  transactions: {
+    list: [],
+    map: {},
+    isLoading: false,
+  },
+  isUnlocked: false,
+  isInitialized: false,
   isLoading: false,
   error: null,
-  isInitialized: false,
-  isUnlocked: false,
 };
-
-// Reducer
-function walletReducer(
-  state: WalletContextState,
-  action: WalletAction
-): WalletContextState {
-  switch (action.type) {
-    case 'SET_LOADING':
-      return { ...state, isLoading: action.payload };
-
-    case 'SET_ERROR':
-      return { ...state, error: action.payload, isLoading: false };
-
-    case 'SET_WALLET':
-      return {
-        ...state,
-        wallet: action.payload,
-      };
-
-    case 'UPDATE_WALLET':
-      return {
-        ...state,
-        wallet: state.wallet ? { ...state.wallet, ...action.payload } : null,
-      };
-
-    case 'SET_INITIALIZED':
-      return { ...state, isInitialized: action.payload };
-
-    case 'SET_UNLOCKED':
-      return { ...state, isUnlocked: action.payload };
-
-    case 'CLEAR_WALLET':
-      return { ...state, wallet: null, isUnlocked: false };
-
-    default:
-      return state;
-  }
-}
-
-// Provider configuration
-export interface WalletProviderConfig {
-  indexer: {
-    apiKey: string;
-    url: string;
-    version?: string;
-  };
-  chains: ChainsConfig;
-}
 
 // Create context
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -138,7 +50,10 @@ export function WalletProvider({
   children: ReactNode;
   config: WalletProviderConfig;
 }) {
-  const [state, dispatch] = useReducer(walletReducer, initialState);
+  const [state, dispatch] = useReducer(
+    walletReducer,
+    WALLET_CONTEXT_INITIAL_STATE
+  );
 
   // Set WDK config on mount
   useEffect(() => {
@@ -146,12 +61,30 @@ export function WalletProvider({
       ...config,
       indexer: { ...config.indexer, version: config.indexer.version || 'v1' },
     });
+
+    initializeWDK();
   }, [config]);
 
   // Load wallet from storage on mount
   useEffect(() => {
     loadStoredWallet();
   }, []);
+
+  useEffect(() => {
+    const enabledAssets = state.wallet?.enabledAssets;
+    const addressMap = state.addresses;
+
+    if (enabledAssets && addressMap) {
+      console.log('useEffect blabla', {
+        enabledAssets,
+        addressMap,
+      });
+
+      fetchBalances();
+      fetchTransactions();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.wallet?.enabledAssets, state.addresses]);
 
   // Save wallet to storage whenever wallet changes
   useEffect(() => {
@@ -161,67 +94,70 @@ export function WalletProvider({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.wallet, state.isInitialized]);
 
-  // Storage operations
   const loadStoredWallet = async () => {
     try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
+      const stored = await AsyncStorage.getItem(STORAGE_KEY_WALLET);
       if (stored) {
         const data = JSON.parse(stored);
-        let metadata: WalletMetadata = data;
+        let parsed: WalletContextState['wallet'] = data;
 
-        // Create minimal wallet object - full data will be loaded during unlock/init
-        const minimalWallet: WalletWithAccountData = {
-          id: metadata.id,
-          name: metadata.name,
-          icon: metadata.icon,
-          enabledAssets: [],
-        };
-
-        dispatch({ type: 'SET_WALLET', payload: minimalWallet });
+        if (parsed) {
+          dispatch({ type: 'SET_WALLET', payload: parsed });
+        }
       }
     } catch (error) {
+      dispatch({
+        type: 'SET_ERROR',
+        payload:
+          error instanceof Error
+            ? error.message
+            : 'Failed to load stored wallet',
+      });
+
       console.error('Failed to load stored wallet:', error);
-    } finally {
-      dispatch({ type: 'SET_INITIALIZED', payload: true });
     }
   };
 
   const saveWalletToStorage = async () => {
     try {
       if (state.wallet) {
-        // Only save minimal metadata - name and icon
-        // Seed phrase is stored securely by WDK, other data is fetched on init
-        const metadata: WalletMetadata = {
-          id: state.wallet.id,
-          name: state.wallet.name,
-          icon: state.wallet.icon || '💎',
-        };
-        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(metadata));
+        await AsyncStorage.setItem(
+          STORAGE_KEY_WALLET,
+          JSON.stringify(state.wallet)
+        );
       }
     } catch (error) {
       console.error('Failed to save wallet to storage:', error);
     }
   };
 
-  // Actions
-  const setWallet = (wallet: WalletWithAccountData | null) => {
-    dispatch({ type: 'SET_WALLET', payload: wallet });
+  const getWalletAddresses = async (enabledAssets: AssetTicker[]) => {
+    try {
+      const stored = await AsyncStorage.getItem(STORAGE_KEY_ADDRESSES);
+      if (stored) {
+        return JSON.parse(stored);
+      } else {
+        const addresses =
+          await WDKService.resolveWalletAddresses(enabledAssets);
+        await AsyncStorage.setItem(
+          STORAGE_KEY_ADDRESSES,
+          JSON.stringify(addresses)
+        );
+        return addresses;
+      }
+    } catch (error) {
+      console.error('Failed to get wallet addresses:', error);
+    }
   };
 
-  const updateWallet = (updates: Partial<WalletWithAccountData>) => {
-    dispatch({ type: 'UPDATE_WALLET', payload: updates });
+  const clearError = () => {
+    dispatch({ type: 'SET_ERROR', payload: null });
   };
 
-  const clearWallet = () => {
-    dispatch({ type: 'CLEAR_WALLET' });
-  };
-
-  // Async operations
   const initializeWDK = async () => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       await WDKService.initialize();
-      dispatch({ type: 'SET_ERROR', payload: null });
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Failed to initialize WDK';
@@ -229,52 +165,20 @@ export function WalletProvider({
       throw error;
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
-    }
-  };
-
-  const loadWallet = async () => {
-    try {
-      dispatch({ type: 'SET_LOADING', payload: true });
-      const wdkWallets = await WDKService.getWallets();
-
-      if (wdkWallets.length > 0) {
-        const wdkWallet = wdkWallets[0]!; // Take first wallet (non-null asserted since length > 0)
-        const accountData = await WDKService.initializeAccountWithBalances({
-          walletId: wdkWallet.id,
-          accountIndex: 0,
-        });
-
-        const wallet: WalletWithAccountData = {
-          id: wdkWallet.id,
-          name: wdkWallet.name,
-          enabledAssets: wdkWallet.enabledAssets,
-          accountData,
-          icon: state.wallet?.icon || '💎', // Preserve icon from metadata
-        };
-
-        dispatch({ type: 'SET_WALLET', payload: wallet });
-      }
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Failed to load wallet';
-      dispatch({ type: 'SET_ERROR', payload: errorMessage });
-      throw error;
-    } finally {
-      dispatch({ type: 'SET_LOADING', payload: false });
+      dispatch({ type: 'SET_INITIALIZED', payload: true });
     }
   };
 
   const createWallet = async (params: {
     name: string;
-    type: 'primary' | 'imported';
-    network: string;
-    icon?: string;
     mnemonic?: string;
-  }): Promise<WalletWithAccountData> => {
+  }): Promise<WalletContextState['wallet']> => {
+    if (!state.isInitialized) {
+      throw new Error('WDK is not initialized');
+    }
+
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-
-      await initializeWDK();
 
       const prf = await getUniqueId();
 
@@ -284,28 +188,15 @@ export function WalletProvider({
         await WDKService.createSeed({ prf });
       }
 
-      const wdkWallet = await WDKService.createWallet({
+      const wallet = await WDKService.createWallet({
         walletName: params.name,
         prf,
       });
 
-      const accountData = await WDKService.initializeAccountWithBalances({
-        walletId: wdkWallet.id,
-        accountIndex: 0,
-      });
-
-      const wallet: WalletWithAccountData = {
-        id: wdkWallet.id,
-        name: wdkWallet.name,
-        enabledAssets: wdkWallet.enabledAssets,
-        accountData,
-        icon: params.icon || '💎', // Use provided icon or default
-      };
+      const addresses = await getWalletAddresses(wallet.enabledAssets);
 
       dispatch({ type: 'SET_WALLET', payload: wallet });
-      dispatch({ type: 'SET_ERROR', payload: null });
-
-      // Mark wallet as unlocked since we just created and initialized it
+      dispatch({ type: 'SET_ADDRESSES', payload: addresses });
       dispatch({ type: 'SET_UNLOCKED', payload: true });
 
       return wallet;
@@ -319,108 +210,214 @@ export function WalletProvider({
     }
   };
 
-  const importWallet = async (
-    mnemonic: string,
-    name: string,
-    icon?: string
-  ): Promise<WalletWithAccountData> => {
-    return createWallet({
-      name,
-      type: 'imported',
-      network: 'ethereum',
-      icon,
-      mnemonic,
-    });
-  };
-
   const unlockWallet = async () => {
     if (!state.wallet) {
       throw new Error('No wallet found');
     }
 
-    // Get device ID for seed retrieval
-    const prf = await getUniqueId();
+    try {
+      // Get device ID for seed retrieval
+      const prf = await getUniqueId();
 
-    // Initialize the wallet with the seed
-    const result = await initializeWallet(state.wallet.name, prf);
+      // Create wallet using the stored seed
+      const wallet = await WDKService.createWallet({
+        walletName: state.wallet.name,
+        prf,
+      });
 
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to initialize wallet');
+      const addresses = await getWalletAddresses(wallet.enabledAssets);
+
+      dispatch({ type: 'SET_WALLET', payload: wallet });
+      dispatch({ type: 'SET_ADDRESSES', payload: addresses });
+      dispatch({ type: 'SET_UNLOCKED', payload: true });
+
+      return true;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to unlock wallet';
+      throw new Error(errorMessage);
+    }
+  };
+
+  const clearWallet = async () => {
+    dispatch({ type: 'CLEAR_WALLET' });
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEY_WALLET);
+      await AsyncStorage.removeItem(STORAGE_KEY_ADDRESSES);
+      await AsyncStorage.removeItem(STORAGE_KEY_BALANCES);
+      await AsyncStorage.removeItem(STORAGE_KEY_TRANSACTIONS);
+    } catch (error) {
+      console.error('Failed to clear wallet from AsyncStorage:', error);
+    }
+  };
+
+  const getUpdatedBalances = async (params: {
+    enabledAssets: AssetTicker[];
+    addressMap: AddressMap;
+  }): Promise<BalanceMap> => {
+    const { enabledAssets, addressMap } = params;
+    const balanceMap = await WDKService.resolveWalletBalances(
+      enabledAssets,
+      addressMap
+    );
+
+    console.log(
+      '\n\n\n\n09875678912 getUpdatedBalances balanceMap',
+      balanceMap
+    );
+
+    // save fresh data to AsyncStorage
+    await AsyncStorage.setItem(
+      STORAGE_KEY_BALANCES,
+      JSON.stringify(balanceMap)
+    );
+
+    return balanceMap;
+  };
+
+  const getUpdatedTransactions = async (params: {
+    enabledAssets: AssetTicker[];
+    addressMap: AddressMap;
+  }): Promise<TransactionMap> => {
+    const { enabledAssets, addressMap } = params;
+    const transactionMap = await WDKService.resolveWalletTransactions(
+      enabledAssets,
+      addressMap
+    );
+
+    console.log(
+      '\n\n\n\n09875678912 getUpdatedTransactions transactionMap',
+      transactionMap
+    );
+
+    // save fresh data to AsyncStorage
+    await AsyncStorage.setItem(
+      STORAGE_KEY_TRANSACTIONS,
+      JSON.stringify(transactionMap)
+    );
+
+    return transactionMap;
+  };
+
+  const fetchBalances = async (params?: { forceUpdate?: boolean }) => {
+    const { forceUpdate = false } = params || {};
+
+    if (!state.wallet) {
+      throw new Error('Wallet not found');
     }
 
-    const enrichedWallet: WalletWithAccountData = {
-      ...state.wallet,
-      id: result.wallet.id || '',
-      name: result.wallet.name || '',
-      enabledAssets: result.wallet.enabledAssets || [],
-      accountData: result.wallet.account,
-    };
+    if (!state.addresses) {
+      throw new Error('Addresses not found');
+    }
 
-    dispatch({ type: 'SET_WALLET', payload: enrichedWallet });
-    dispatch({ type: 'SET_UNLOCKED', payload: true });
+    const enabledAssets = state.wallet.enabledAssets || [];
+    const addressMap = state.addresses || {};
 
-    return true;
+    // Check if we have cached balances in state
+    if (config.enableCaching && !forceUpdate) {
+      try {
+        const stored = await AsyncStorage.getItem(STORAGE_KEY_BALANCES);
+        if (stored) {
+          const balanceMap: BalanceMap = JSON.parse(stored);
+          dispatch({ type: 'SET_BALANCES', payload: balanceMap });
+        }
+      } catch (error) {
+        console.error('Failed to load cached balances:', error);
+      }
+    }
+
+    // Set loading state
+    dispatch({ type: 'SET_LOADING_BALANCES', payload: true });
+
+    try {
+      // Fetch fresh data
+      const balanceMap = await getUpdatedBalances({
+        enabledAssets,
+        addressMap,
+      });
+
+      // Update state with fresh data
+      dispatch({ type: 'SET_BALANCES', payload: balanceMap });
+    } catch (error) {
+      console.error('Failed to fetch balances:', error);
+    } finally {
+      dispatch({ type: 'SET_LOADING_BALANCES', payload: false });
+    }
+  };
+
+  const fetchTransactions = async (params?: { forceUpdate?: boolean }) => {
+    const { forceUpdate = false } = params || {};
+
+    if (!state.wallet) {
+      throw new Error('Wallet not found');
+    }
+
+    if (!state.addresses) {
+      throw new Error('Addresses not found');
+    }
+
+    const enabledAssets = state.wallet.enabledAssets;
+    const addressMap = state.addresses;
+
+    // Check if we have cached transactions in state
+    if (config.enableCaching && !forceUpdate) {
+      try {
+        const stored = await AsyncStorage.getItem(STORAGE_KEY_TRANSACTIONS);
+        if (stored) {
+          const transactionMap: TransactionMap = JSON.parse(stored);
+          dispatch({ type: 'SET_TRANSACTIONS', payload: transactionMap });
+        }
+      } catch (error) {
+        console.error('Failed to load cached balances:', error);
+      }
+    }
+
+    // Set loading state
+    dispatch({ type: 'SET_LOADING_TRANSACTIONS', payload: true });
+
+    try {
+      // Fetch fresh data
+      const transactionMap = await getUpdatedTransactions({
+        enabledAssets,
+        addressMap,
+      });
+
+      // Update state with fresh data
+      dispatch({
+        type: 'SET_TRANSACTIONS',
+        payload: transactionMap,
+      });
+    } catch (error) {
+      console.error('Failed to fetch transactions:', error);
+    } finally {
+      dispatch({ type: 'SET_LOADING_TRANSACTIONS', payload: false });
+    }
   };
 
   const refreshWalletBalance = async () => {
-    try {
-      if (!state.wallet || !state.wallet.accountData) {
-        console.error('Wallet or account data not found');
-        return;
-      }
+    const balanceMap = await getUpdatedBalances({
+      enabledAssets: state.wallet?.enabledAssets || [],
+      addressMap: state.addresses || {},
+    });
+    dispatch({ type: 'SET_BALANCES', payload: balanceMap });
+  };
 
-      const balanceMap = await WDKService.resolveWalletBalances(
-        state.wallet.enabledAssets,
-        state.wallet.accountData.addressMap
-      );
+  const refreshTransactions = async () => {
+    const transactionMap = await getUpdatedTransactions({
+      enabledAssets: state.wallet?.enabledAssets || [],
+      addressMap: state.addresses || {},
+    });
 
-      const balances = Object.entries(balanceMap).map(
-        ([key, { balance, asset }]) => {
-          const [networkType] = key.split('_') as [NetworkType];
-          return {
-            networkType,
-            denomination: asset,
-            value: balance.toString(),
-          };
-        }
-      );
-
-      const transactionMap = await WDKService.resolveWalletTransactions(
-        state.wallet.enabledAssets,
-        state.wallet.accountData.addressMap
-      );
-
-      const transactions: Transaction[] = Object.entries(transactionMap).reduce(
-        (allTransactions, [_, txArray]) => {
-          return allTransactions.concat(txArray);
-        },
-        [] as Transaction[]
-      );
-
-      updateWallet({
-        accountData: {
-          ...state.wallet.accountData,
-          balances,
-          balanceMap,
-          transactions: transactions,
-          transactionMap,
-        },
-      });
-    } catch (error) {
-      console.error('Failed to refresh wallet balance:', error);
-    }
+    dispatch({ type: 'SET_TRANSACTIONS', payload: transactionMap });
   };
 
   const value: WalletContextType = {
     ...state,
-    setWallet,
-    updateWallet,
-    clearWallet,
-    initializeWDK,
-    loadWallet,
     createWallet,
-    importWallet,
+    clearWallet,
+    clearError,
     refreshWalletBalance,
+    refreshTransactions,
     unlockWallet,
   };
 
