@@ -13,10 +13,54 @@ A React Native library providing wallet context and WDK (Wallet Development Kit)
 - **Send & Quote**: Transaction sending and fee estimation
 - **TypeScript Support**: Full type definitions included
 
+## Requirements
+
+- **Android minSdkVersion**: 29 or higher
+- **iOS Deployment Target**: 15.1 or higher
+- **React Native**: 0.81.0+
+
 ## Installation
 
 ```sh
 npm install @tetherto/wdk-react-native-provider
+```
+
+### Android Configuration
+
+The library requires **Android minSdkVersion 29** to properly run `react-native-bare-kit`.
+
+**For Expo projects with prebuild:**
+
+Add to your `app.json` or `app.config.js`:
+
+```json
+{
+  "expo": {
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 29
+          }
+        }
+      ]
+    ]
+  }
+}
+```
+
+**For bare React Native projects:**
+
+Update `android/build.gradle`:
+
+```gradle
+buildscript {
+    ext {
+        minSdkVersion = 29
+        // ... other config
+    }
+}
 ```
 
 ### Peer Dependencies
@@ -31,25 +75,131 @@ npm install \
   @tetherto/wdk-secret-manager \
   b4a \
   bip39 \
+  browserify-zlib \
   decimal.js \
+  events \
+  http2-wrapper \
+  https-browserify \
+  nice-grpc-web \
+  path-browserify \
   process \
+  querystring-es3 \
   react-native-bare-kit \
   react-native-crypto \
   react-native-device-info \
   react-native-get-random-values \
-  react-native-keychain
+  react-native-keychain \
+  react-native-tcp-socket \
+  react-native-url-polyfill \
+  sodium-javascript \
+  stream-browserify \
+  stream-http
 ```
+
+### Metro Configuration
+
+The library requires Node.js core module polyfills for React Native. Configure your Metro bundler using the provided helper function.
+
+**For Expo projects:**
+
+Update your `metro.config.js`:
+
+```js
+const { getDefaultConfig } = require('expo/metro-config');
+const { configureMetroForWDK } = require('@tetherto/wdk-react-native-provider/metro-polyfills');
+
+const config = getDefaultConfig(__dirname);
+const configWdk = configureMetroForWDK(config);
+
+module.exports = configWdk;
+```
+
+**Manual configuration (if needed):**
+
+If you prefer to manually configure the polyfills:
+
+```js
+const { getDefaultConfig } = require('expo/metro-config');
+const { getMetroPolyfills } = require('@tetherto/wdk-react-native-provider/metro-polyfills');
+
+const config = getDefaultConfig(__dirname);
+
+config.resolver.extraNodeModules = {
+  ...config.resolver.extraNodeModules,
+  ...getMetroPolyfills(),
+};
+
+module.exports = config;
+```
+
+**Note:** Runtime polyfills for Buffer, process, and crypto are automatically initialized when you import from `@tetherto/wdk-react-native-provider`. No additional setup is required.
 
 ## Quick Start
 
 ### 1. Setup the WalletProvider
 
-Wrap your app with the `WalletProvider` and provide the required configuration:
+Wrap your app with the `WalletProvider` and provide the required configuration.
+
+**For Expo Router projects:**
+
+Add the provider to your `app/_layout.tsx` file to make the `useWallet` hook accessible throughout your app:
 
 ```tsx
+// app/_layout.tsx
+import { WalletProvider } from '@tetherto/wdk-react-native-provider';
+import { Stack } from 'expo-router';
+
+// Define your chain configurations
+const CHAINS_CONFIG = {
+  ethereum: {
+    chainId: 1,
+    blockchain: 'ethereum',
+    provider: 'https://mainnet.gateway.tenderly.co/YOUR_KEY',
+    bundlerUrl: 'https://api.candide.dev/public/v3/ethereum',
+    paymasterUrl: 'https://api.candide.dev/public/v3/ethereum',
+    paymasterAddress: '0x8b1f6cb5d062aa2ce8d581942bbb960420d875ba',
+    entrypointAddress: '0x0000000071727De22E5E9d8BAf0edAc6f37da032',
+    transferMaxFee: 5000000,
+    swapMaxFee: 5000000,
+    bridgeMaxFee: 5000000,
+    paymasterToken: {
+      address: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+    },
+  },
+  bitcoin: {
+    host: 'api.ordimint.com',
+    port: 50001,
+  },
+  // ... add other chains as needed
+};
+
+export default function RootLayout() {
+  return (
+    <WalletProvider
+      config={{
+        indexer: {
+          apiKey: 'your-api-key-here',
+          url: 'https://your-indexer-url.com',
+        },
+        chains: CHAINS_CONFIG,
+        enableCaching: true, // Optional: enable caching for better performance
+      }}
+    >
+      <Stack />
+    </WalletProvider>
+  );
+}
+```
+
+**For standard React Native projects:**
+
+Wrap your root component:
+
+```tsx
+// App.tsx
 import { WalletProvider } from '@tetherto/wdk-react-native-provider';
 
-const chains = {
+const CHAINS_CONFIG = {
   ethereum: {
     chainId: 1,
     blockchain: 'ethereum',
@@ -80,7 +230,7 @@ function App() {
           apiKey: 'your-api-key-here',
           url: 'https://your-indexer-url.com',
         },
-        chains: chains,
+        chains: CHAINS_CONFIG,
         enableCaching: true, // Optional: enable caching for balances and transactions
       }}
     >
@@ -114,25 +264,13 @@ function WalletScreen() {
   // Create a new wallet
   const handleCreateWallet = async () => {
     try {
-      const newWallet = await createWallet({
-        name: 'My Wallet',
+      const wallet = await createWallet({
+        name: 'Imported Wallet',
+        mnemonic: 'your twelve word seed phrase goes here',
       });
-      console.log('Wallet created:', newWallet);
+      console.log('Wallet created:', wallet);
     } catch (error) {
       console.error('Failed to create wallet:', error);
-    }
-  };
-
-  // Import existing wallet
-  const handleImportWallet = async () => {
-    try {
-      const imported = await createWallet({
-        name: 'Imported Wallet',
-        mnemonic: 'your twelve word mnemonic phrase here ...',
-      });
-      console.log('Wallet imported:', imported);
-    } catch (error) {
-      console.error('Failed to import wallet:', error);
     }
   };
 
@@ -588,6 +726,43 @@ npm test
 
 ## Troubleshooting
 
+### Setup Checklist
+
+If you're experiencing issues, verify you've completed all setup steps:
+
+**For Expo projects:**
+
+1. ✅ Install the package: `npm install @tetherto/wdk-react-native-provider`
+2. ✅ Install all peer dependencies (see [Peer Dependencies](#peer-dependencies))
+3. ✅ Configure Android minSdkVersion to 29 in `app.json`:
+   ```json
+   {
+     "expo": {
+       "plugins": [
+         ["expo-build-properties", { "android": { "minSdkVersion": 29 } }]
+       ]
+     }
+   }
+   ```
+4. ✅ Configure Metro polyfills in `metro.config.js`:
+   ```js
+   const { configureMetroForWDK } = require('@tetherto/wdk-react-native-provider/metro-polyfills');
+   const config = getDefaultConfig(__dirname);
+   const configWdk = configureMetroForWDK(config);
+   module.exports = configWdk;
+   ```
+5. ✅ Add `WalletProvider` to `app/_layout.tsx` with proper config
+6. ✅ Use `useWallet()` hook in your components
+7. ✅ Check `isInitialized` before creating wallets
+
+**For bare React Native projects:**
+
+1. ✅ Install the package and peer dependencies
+2. ✅ Set minSdkVersion to 29 in `android/build.gradle`
+3. ✅ Configure Metro polyfills in `metro.config.js`
+4. ✅ Wrap your root component with `WalletProvider`
+5. ✅ Rebuild native code: `npx react-native run-android` or `npx react-native run-ios`
+
 ### "WDK Manager not initialized"
 
 The WDK service is initialized automatically when the `WalletProvider` mounts. If you see this error, ensure:
@@ -612,6 +787,44 @@ Ensure a wallet has been created or imported before attempting transactions:
 const { wallet, createWallet } = useWallet();
 if (!wallet) {
   await createWallet({ name: 'My Wallet' });
+}
+```
+
+### Metro bundler errors or "Unable to resolve module"
+
+If you see errors like `Unable to resolve "stream"` or other Node.js core modules:
+
+1. Ensure you've configured Metro polyfills correctly (see [Metro Configuration](#metro-configuration))
+2. Clear Metro cache: `npx expo start --clear` or `npx react-native start --reset-cache`
+3. Delete `node_modules` and reinstall: `rm -rf node_modules && npm install`
+4. For Expo: Run prebuild if using custom native modules: `npx expo prebuild --clean`
+
+### Android build fails with "Execution failed for task ':app:checkDebugAarMetadata'"
+
+This usually means minSdkVersion is too low. Ensure you've set minSdkVersion to 29:
+
+**For Expo:**
+```json
+{
+  "expo": {
+    "plugins": [
+      ["expo-build-properties", { "android": { "minSdkVersion": 29 } }]
+    ]
+  }
+}
+```
+
+Then rebuild: `npx expo run:android` or `npx expo prebuild --clean && npx expo run:android`
+
+### TypeScript errors about missing types
+
+Some peer dependencies may not have type definitions. You can ignore these by adding to your `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "skipLibCheck": true
+  }
 }
 ```
 
