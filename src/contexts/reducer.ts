@@ -89,7 +89,11 @@ function reducer(
       };
 
     case 'CLEAR_WALLET':
-      return WALLET_CONTEXT_INITIAL_STATE;
+      return {
+        ...WALLET_CONTEXT_INITIAL_STATE,
+        // Keep isInitialized true since WDK worklets remain active
+        isInitialized: state.isInitialized,
+      };
 
     default:
       return state;

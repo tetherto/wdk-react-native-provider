@@ -224,6 +224,7 @@ export function WalletProvider({
       await AsyncStorage.removeItem(STORAGE_KEY_ADDRESSES);
       await AsyncStorage.removeItem(STORAGE_KEY_BALANCES);
       await AsyncStorage.removeItem(STORAGE_KEY_TRANSACTIONS);
+      await WDKService.clearWallet();
     } catch (error) {
       console.error('Failed to clear wallet from AsyncStorage:', error);
     }

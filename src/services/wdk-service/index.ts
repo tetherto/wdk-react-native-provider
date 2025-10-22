@@ -169,6 +169,42 @@ class WDKService {
     }
   }
 
+  async clearWallet(): Promise<void> {
+    try {
+      // 1. Gracefully stop worklet operations if they're running
+      if (this.wdkManager) {
+        try {
+          await this.wdkManager.workletStop();
+        } catch (error) {
+          // Worklet might not be started, ignore
+          console.warn('Could not stop wdkManager worklet:', error);
+        }
+      }
+
+      if (this.secretManager) {
+        try {
+          await this.secretManager.commandWorkletStop();
+        } catch (error) {
+          // Worklet might not be started, ignore
+          console.warn('Could not stop secretManager worklet:', error);
+        }
+      }
+
+      // 3. Clear all keychain storage (entropy, seed, salt)
+      await WdkSecretManagerStorage.resetAllData();
+
+      // 4. Reset internal state (but keep worklets alive)
+      this.walletManagerCache.clear();
+
+      // Note: We keep this.wdkManager and this.secretManager references intact
+      // as the worklets are still running and can be reused
+      // We also keep this.isInitialized = true since worklets are still initialized
+    } catch (error) {
+      console.error('Failed to clear wallet:', error);
+      throw error;
+    }
+  }
+
   // WDK API Methods
   async createSeed(params: {
     prf: Buffer | ArrayBuffer | string;
