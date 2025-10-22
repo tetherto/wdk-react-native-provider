@@ -36,12 +36,14 @@ export const SMART_CONTRACT_BALANCE_ADDRESSES = {
     polygon: '0xc2132d05d31c914a87c6611c10748aeb04b58e8f',
     arbitrum: '0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9',
     ton: 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs',
+    plasma: '0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb'
   },
   [AssetTicker.XAUT]: {
     ethereum: '0x68749665FF8D2d112Fa859AA293F07A622782F38',
     polygon: '0xF1815bd50389c46847f0Bda824eC8da914045D14',
     arbitrum: '0x40461291347e1eCbb09499F3371D3f17f10d7159',
     ton: 'EQA1R_LuQCLHlMgOo1S4G7Y7W1cd0FrAkbA10Zq7rddKxi9k',
+    plasma: '0x1B64B9025EEbb9A6239575dF9Ea4b9Ac46D4d193'
   },
 };
 
@@ -57,6 +59,8 @@ const toNetwork = (n: NetworkType): string => {
       return 'polygon';
     case NetworkType.ARBITRUM:
       return 'arbitrum';
+    case NetworkType.PLASMA:
+      return 'plasma';
     case NetworkType.SOLANA:
       return 'solana';
     case NetworkType.TRON:
@@ -383,6 +387,8 @@ class WDKService {
       networkAddresses[NetworkType.ETHEREUM];
     networkAddresses[NetworkType.ARBITRUM] =
       networkAddresses[NetworkType.ETHEREUM];
+    networkAddresses[NetworkType.PLASMA] =
+      networkAddresses[NetworkType.ETHEREUM];
 
     return networkAddresses;
   }
@@ -454,6 +460,7 @@ class WDKService {
           NetworkType.ETHEREUM,
           NetworkType.POLYGON,
           NetworkType.ARBITRUM,
+          NetworkType.PLASMA,
           NetworkType.TON,
         ].includes(network)
       ) {
@@ -540,6 +547,7 @@ class WDKService {
         NetworkType.ETHEREUM,
         NetworkType.POLYGON,
         NetworkType.ARBITRUM,
+        NetworkType.PLASMA,
         NetworkType.TON,
       ].includes(network)
     ) {
