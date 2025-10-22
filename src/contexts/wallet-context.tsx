@@ -240,11 +240,13 @@ export function WalletProvider({
       addressMap
     );
 
-    // save fresh data to AsyncStorage
-    await AsyncStorage.setItem(
-      STORAGE_KEY_BALANCES,
-      JSON.stringify(balanceMap)
-    );
+    if (config.enableCaching) {
+      // save fresh data to AsyncStorage
+      await AsyncStorage.setItem(
+        STORAGE_KEY_BALANCES,
+        JSON.stringify(balanceMap)
+      );
+    }
 
     return balanceMap;
   };
@@ -259,11 +261,13 @@ export function WalletProvider({
       addressMap
     );
 
-    // save fresh data to AsyncStorage
-    await AsyncStorage.setItem(
-      STORAGE_KEY_TRANSACTIONS,
-      JSON.stringify(transactionMap)
-    );
+    if (config.enableCaching) {
+      // save fresh data to AsyncStorage
+      await AsyncStorage.setItem(
+        STORAGE_KEY_TRANSACTIONS,
+        JSON.stringify(transactionMap)
+      );
+    }
 
     return transactionMap;
   };
