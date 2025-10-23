@@ -7,7 +7,7 @@ export {
   default as WalletContext,
   WalletProvider,
 } from './contexts/wallet-context';
-export type { WalletProviderConfig } from './contexts/wallet-context';
+export type { WalletProviderConfig } from './contexts/types';
 
 // Export WDK service
 export {
@@ -16,19 +16,8 @@ export {
   SMART_CONTRACT_BALANCE_ADDRESSES,
 } from './services/wdk-service';
 
-// Export wallet setup utilities
-export { initializeWallet } from './services/wallet-setup';
-export type { WalletSetupResult } from './services/wallet-setup';
-
 // Export all types
-export type {
-  AccountData,
-  Address,
-  Amount,
-  InitializeAccountParams,
-  Transaction,
-  Wallet,
-} from './services/wdk-service/types';
+export type { Amount, Transaction, Wallet } from './services/wdk-service/types';
 
 // Export enums (can be used as both types and values)
 export {
