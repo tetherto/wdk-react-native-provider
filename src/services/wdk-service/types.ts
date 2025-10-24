@@ -13,6 +13,7 @@ export enum NetworkType {
   TON = 'ton',
   POLYGON = 'polygon',
   ARBITRUM = 'arbitrum',
+  PLASMA = 'plasma',
 }
 
 export const AssetAddressMap = {
@@ -23,6 +24,7 @@ export const AssetAddressMap = {
     [NetworkType.ETHEREUM]: 'ethereum',
     [NetworkType.POLYGON]: 'polygon',
     [NetworkType.ARBITRUM]: 'arbitrum',
+    [NetworkType.PLASMA]: 'plasma',
     [NetworkType.TON]: 'ton',
   },
   [AssetTicker.XAUT]: {
@@ -38,10 +40,12 @@ export const AssetBalanceMap = {
     [NetworkType.ETHEREUM]: 'ethereum',
     [NetworkType.POLYGON]: 'polygon',
     [NetworkType.ARBITRUM]: 'arbitrum',
+    [NetworkType.PLASMA]: 'plasma',
     [NetworkType.TON]: 'ton',
   },
   [AssetTicker.XAUT]: {
     [NetworkType.ETHEREUM]: 'ethereum',
+    [NetworkType.PLASMA]: 'plasma',
   },
 };
 
@@ -131,7 +135,8 @@ export interface ChainsConfig {
   ethereum?: EVMChainConfig;
   arbitrum?: EVMChainConfig;
   polygon?: EVMChainConfig;
-  ton?: TONChainConfig;
+  plasma?: EVMChainConfig;
   bitcoin?: BitcoinChainConfig;
   tron?: TronChainConfig;
+  ton?: TONChainConfig;
 }
