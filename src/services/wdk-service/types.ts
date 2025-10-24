@@ -61,14 +61,12 @@ export interface Wallet {
   enabledAssets: AssetTicker[];
 }
 
-export interface AccountData {
-  addresses: Address[];
-  balances: Amount[];
-  addressMap: Partial<Record<NetworkType, string>>;
-  balanceMap: Partial<Record<NetworkType, number>>;
-  transactions: Transaction[];
-  transactionMap: Record<string, Transaction[]>;
-}
+export type AddressMap = Partial<Record<NetworkType, string>>;
+export type BalanceMap = Record<
+  string,
+  { balance: number; asset: AssetTicker }
+>;
+export type TransactionMap = Partial<Record<NetworkType, Transaction[]>>;
 
 export interface Transaction {
   blockchain: string;
@@ -83,19 +81,6 @@ export interface Transaction {
   from: string;
   to: string;
 }
-
-export interface Address {
-  asset?: AssetTicker;
-  networkType: NetworkType;
-  value: string;
-}
-
-export interface InitializeAccountParams {
-  walletId: string;
-  accountIndex: number;
-}
-
-// Chain Configuration Types
 
 export interface PaymasterToken {
   address: string;

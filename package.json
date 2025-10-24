@@ -1,6 +1,6 @@
 {
   "name": "@tetherto/wdk-react-native-provider",
-  "version": "1.0.0-beta.2",
+  "version": "1.0.0-beta.3",
   "description": "React Native library providing wallet context and WDK service integration",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
@@ -10,6 +10,7 @@
       "types": "./lib/typescript/src/index.d.ts",
       "default": "./lib/module/index.js"
     },
+    "./metro-polyfills": "./metro-polyfills.js",
     "./package.json": "./package.json"
   },
   "files": [
@@ -20,6 +21,7 @@
     "cpp",
     "*.podspec",
     "react-native.config.js",
+    "metro-polyfills.js",
     "!ios/build",
     "!android/build",
     "!android/gradle",
@@ -86,15 +88,27 @@
     "@tetherto/wdk-secret-manager": "^1.0.0-beta.3",
     "b4a": "^1.7.2",
     "bip39": "^3.1.0",
+    "browserify-zlib": "^0.2.0",
     "decimal.js": "^10.6.0",
+    "events": "^3.3.0",
+    "http2-wrapper": "^2.2.1",
+    "https-browserify": "^1.0.0",
+    "nice-grpc-web": "^3.3.8",
+    "path-browserify": "^1.0.1",
     "process": "^0.11.10",
-    "react": "19.1.0",
-    "react-native": "0.81.4",
-    "react-native-bare-kit": "^0.8.14",
+    "querystring-es3": "^0.2.1",
+    "react": ">=19.1.0",
+    "react-native": ">=0.81.4",
+    "react-native-bare-kit": "^0.10.2",
     "react-native-crypto": "^2.2.1",
     "react-native-device-info": "^14.1.1",
     "react-native-get-random-values": "^1.11.0",
-    "react-native-keychain": "^10.0.0"
+    "react-native-keychain": "^10.0.0",
+    "react-native-tcp-socket": "^6.3.0",
+    "react-native-url-polyfill": "^2.0.0",
+    "sodium-javascript": "^0.8.0",
+    "stream-browserify": "^3.0.0",
+    "stream-http": "^3.2.0"
   },
   "packageManager": "npm@10.9.0",
   "jest": {
